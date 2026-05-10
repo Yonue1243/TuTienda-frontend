@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 const nav = [
   { href: '/dashboard', label: 'Resumen' },
   { href: '/dashboard/tienda', label: 'Mi tienda' },
+  { href: '/dashboard/apariencia', label: 'Apariencia' },
   { href: '/dashboard/productos', label: 'Productos' },
   { href: '/dashboard/pedidos', label: 'Pedidos' },
 ];

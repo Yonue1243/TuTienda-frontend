@@ -32,7 +32,7 @@ export function extensionFromFileName(name: string): string {
 }
 
 export async function uploadViaSignedUrl(
-  bucket: 'logos' | 'product-images',
+  bucket: 'logos' | 'product-images' | 'banners' | 'carousel',
   path: string,
   file: File,
 ): Promise<string> {

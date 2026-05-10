@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { uploadViaSignedUrl, validateImageFile } from '@/lib/storage-upload';
 
-type Bucket = 'logos' | 'product-images';
+type Bucket = 'logos' | 'product-images' | 'banners' | 'carousel';
 
 type Props = {
   label: string;

@@ -11,15 +11,45 @@ export type AuthResponse = {
   refreshToken: string;
 };
 
-export type StorePublic = {
+export type StoreSettingsDto = {
+  id: string;
+  storeId: string;
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  buttonColor: string;
+  buttonTextColor: string;
+  showBanner: boolean;
+  bannerUrl: string | null;
+  carouselEnabled: boolean;
+  categoriesSectionEnabled: boolean;
+  featuredSectionEnabled: boolean;
+  descriptionSectionEnabled: boolean;
+  layoutStyle: string;
+  cardStyle: string;
+  cornerRadius: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CarouselSlideDto = {
+  id: string;
+  storeId: string;
+  sortOrder: number;
+  imageUrl: string;
+  title: string | null;
+  subtitle: string | null;
+  ctaLabel: string | null;
+  ctaHref: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CategoryDto = {
   id: string;
   name: string;
-  slug: string;
-  description: string | null;
-  phone: string | null;
-  logoUrl: string | null;
-  categories: { id: string; name: string }[];
-  products: ProductDto[];
+  sortOrder?: number;
 };
 
 export type ProductDto = {
@@ -30,9 +60,24 @@ export type ProductDto = {
   imageUrl: string;
   stock: number | null;
   visible: boolean;
+  featured?: boolean;
+  featuredSortOrder?: number | null;
   categoryId: string | null;
-  category?: { id: string; name: string } | null;
+  category?: CategoryDto | { id: string; name: string } | null;
   createdAt?: string;
+};
+
+export type StorePublic = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  phone: string | null;
+  logoUrl: string | null;
+  settings?: StoreSettingsDto | null;
+  carouselSlides?: CarouselSlideDto[];
+  categories: CategoryDto[];
+  products: ProductDto[];
 };
 
 export type OrderDto = {

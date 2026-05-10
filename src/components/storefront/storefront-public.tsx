@@ -33,7 +33,7 @@ export function StorefrontPublicHeader({
 }) {
   const accent = settings.primaryColor;
   return (
-    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/90 backdrop-blur">
+    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-8">
         {store.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -93,13 +93,11 @@ function ProductCard({
   const priceColor = settings.secondaryColor;
   return (
     <article
-      className={`overflow-hidden border ${r} ${
-        flat
-          ? 'border-[color:var(--sf-card-border)] bg-transparent'
-          : 'border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/60 shadow-sm ring-1 ring-black/5'
+      className={`overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] ${
+        flat ? '' : 'shadow-sm ring-1 ring-black/5'
       }`}
     >
-      <div className={`aspect-[4/3] bg-black/10 ${flat ? '' : ''}`}>
+      <div className="aspect-[4/3] bg-black/10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
       </div>

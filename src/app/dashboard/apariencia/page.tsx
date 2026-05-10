@@ -246,7 +246,8 @@ export default function AparienciaPage() {
                 <CardHeader>
                   <CardTitle className="text-base text-white">Paleta</CardTitle>
                   <CardDescription className="text-zinc-500">
-                    Los cambios se aplican en la vista previa al instante; pulsá Guardar para persistir.
+                    Página, encabezado y tarjetas tienen fondos independientes. Vista previa al instante;
+                    pulsá Guardar para persistir.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -261,9 +262,27 @@ export default function AparienciaPage() {
                     onChange={(v) => patchDraft('secondaryColor', v)}
                   />
                   <HexColorInput
-                    label="Fondo"
+                    label="Fondo (página)"
                     value={draft.backgroundColor ?? baseSettings.backgroundColor}
                     onChange={(v) => patchDraft('backgroundColor', v)}
+                  />
+                  <HexColorInput
+                    label="Fondo del encabezado"
+                    value={
+                      draft.headerBackgroundColor ??
+                      baseSettings.headerBackgroundColor ??
+                      baseSettings.backgroundColor
+                    }
+                    onChange={(v) => patchDraft('headerBackgroundColor', v)}
+                  />
+                  <HexColorInput
+                    label="Fondo de tarjetas (productos)"
+                    value={
+                      draft.productCardBackgroundColor ??
+                      baseSettings.productCardBackgroundColor ??
+                      '#18181b'
+                    }
+                    onChange={(v) => patchDraft('productCardBackgroundColor', v)}
                   />
                   <HexColorInput
                     label="Texto"

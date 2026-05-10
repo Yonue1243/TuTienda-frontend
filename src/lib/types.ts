@@ -17,6 +17,8 @@ export type StoreSettingsDto = {
   primaryColor: string;
   secondaryColor: string;
   backgroundColor: string;
+  headerBackgroundColor: string;
+  productCardBackgroundColor: string;
   textColor: string;
   buttonColor: string;
   buttonTextColor: string;

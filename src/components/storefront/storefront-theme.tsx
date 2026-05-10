@@ -7,6 +7,8 @@ export const FALLBACK_STORE_SETTINGS: StoreSettingsDto = {
   primaryColor: '#6366f1',
   secondaryColor: '#8b5cf6',
   backgroundColor: '#030712',
+  headerBackgroundColor: '#030712',
+  productCardBackgroundColor: '#18181b',
   textColor: '#f4f4f5',
   buttonColor: '#6366f1',
   buttonTextColor: '#ffffff',
@@ -28,14 +30,28 @@ export function mergeStoreSettings(
   draft?: Partial<StoreSettingsDto> | null,
 ): StoreSettingsDto {
   const base = server ?? FALLBACK_STORE_SETTINGS;
-  return { ...base, ...draft };
+  const merged = { ...base, ...draft };
+  if (!merged.headerBackgroundColor?.trim()) {
+    merged.headerBackgroundColor = merged.backgroundColor;
+  }
+  if (!merged.productCardBackgroundColor?.trim()) {
+    merged.productCardBackgroundColor = FALLBACK_STORE_SETTINGS.productCardBackgroundColor;
+  }
+  return merged;
 }
 
 export function storefrontCssVars(settings: StoreSettingsDto): CSSProperties {
+  const headerBg =
+    settings.headerBackgroundColor?.trim() || settings.backgroundColor;
+  const productCardBg =
+    settings.productCardBackgroundColor?.trim() ||
+    FALLBACK_STORE_SETTINGS.productCardBackgroundColor;
   return {
     '--sf-primary': settings.primaryColor,
     '--sf-secondary': settings.secondaryColor,
     '--sf-bg': settings.backgroundColor,
+    '--sf-header-bg': headerBg,
+    '--sf-product-card-bg': productCardBg,
     '--sf-text': settings.textColor,
     '--sf-muted': `${settings.textColor}99`,
     '--sf-btn': settings.buttonColor,

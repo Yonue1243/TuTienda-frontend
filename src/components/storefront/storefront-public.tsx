@@ -34,7 +34,7 @@ export function StorefrontPublicHeader({
   const accent = settings.primaryColor;
   return (
     <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-8">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-6 sm:py-7">
         {store.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -53,10 +53,10 @@ export function StorefrontPublicHeader({
             {store.name.slice(0, 1).toUpperCase()}
           </div>
         )}
-        <div className="flex-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{store.name}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{store.name}</h1>
           {store.phone ? (
-            <p className="mt-3">
+            <p className="mt-2 sm:mt-3">
               <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--sf-muted)]">
                 Contacto
               </span>
@@ -101,22 +101,24 @@ function ProductCard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
       </div>
-      <div className="space-y-3 p-4">
-        <div>
-          <h3 className="font-semibold">{product.name}</h3>
+      <div className="space-y-4 p-5">
+        <div className="space-y-1.5">
+          <h3 className="text-[15px] font-semibold leading-snug sm:text-base">{product.name}</h3>
           {product.description ? (
-            <p className="mt-1 line-clamp-3 text-xs text-[color:var(--sf-muted)]">{product.description}</p>
+            <p className="line-clamp-2 text-sm leading-relaxed text-[color:var(--sf-muted)]">
+              {product.description}
+            </p>
           ) : null}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-lg font-semibold" style={{ color: priceColor }}>
+        <div className="flex items-center justify-between gap-3 pt-0.5">
+          <p className="text-lg font-semibold tabular-nums sm:text-xl" style={{ color: priceColor }}>
             ${Number(product.price).toFixed(2)}
           </p>
           {onAdd ? (
             <button
               type="button"
               onClick={onAdd}
-              className={`px-4 py-2 text-xs font-semibold ${r}`}
+              className={`px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-95 ${r}`}
               style={{
                 backgroundColor: 'var(--sf-btn)',
                 color: 'var(--sf-btn-text)',

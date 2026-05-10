@@ -40,6 +40,7 @@ export default function PublicTiendaPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [orderMsg, setOrderMsg] = useState<string | null>(null);
+  const [orderErr, setOrderErr] = useState(false);
 
   const orderMu = useMutation({
     mutationFn: async () => {
@@ -56,6 +57,7 @@ export default function PublicTiendaPage() {
       return data;
     },
     onSuccess: () => {
+      setOrderErr(false);
       setOrderMsg('¡Pedido enviado! El comercio lo verá en su panel.');
       clearCart();
       setCustomerName('');
@@ -63,6 +65,7 @@ export default function PublicTiendaPage() {
       setNotes('');
     },
     onError: () => {
+      setOrderErr(true);
       setOrderMsg('No pudimos enviar el pedido. Revisá stock y datos.');
     },
   });
@@ -116,7 +119,7 @@ export default function PublicTiendaPage() {
           }
         />
 
-        <aside className="lg:sticky lg:top-24 h-fit space-y-6 rounded-3xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/50 p-6">
+        <aside className="lg:sticky lg:top-24 h-fit space-y-6 rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)]/80 p-5 sm:p-6">
           <h2 className="text-lg font-semibold" style={{ color: 'var(--sf-text)' }}>
             Carrito
           </h2>
@@ -216,6 +219,7 @@ export default function PublicTiendaPage() {
                   disabled={orderMu.isPending}
                   onClick={() => {
                     setOrderMsg(null);
+                    setOrderErr(false);
                     orderMu.mutate();
                   }}
                   className="w-full rounded-xl py-3 text-sm font-semibold transition hover:opacity-95 disabled:opacity-60"
@@ -226,9 +230,15 @@ export default function PublicTiendaPage() {
                 >
                   {orderMu.isPending ? 'Enviando…' : 'Enviar pedido'}
                 </button>
-                {orderMsg && (
-                  <p className="text-center text-xs text-emerald-300">{orderMsg}</p>
-                )}
+                {orderMsg ? (
+                  <p
+                    className={`text-center text-xs leading-relaxed ${
+                      orderErr ? 'text-red-400/95' : 'text-emerald-400/95'
+                    }`}
+                  >
+                    {orderMsg}
+                  </p>
+                ) : null}
               </div>
             </>
           )}

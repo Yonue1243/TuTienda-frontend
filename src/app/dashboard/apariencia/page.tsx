@@ -21,12 +21,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   StorefrontPublicHeader,
   StorefrontPublicSections,
   StorefrontThemeShell,
 } from '@/components/storefront/storefront-public';
 import { mergeStoreSettings } from '@/components/storefront/storefront-theme';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AparienciaPage() {
   const qc = useQueryClient();
@@ -180,23 +182,30 @@ export default function AparienciaPage() {
 
   if (storeQ.isLoading) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-sm text-zinc-400">
-        Cargando…
+      <div className="mx-auto max-w-6xl space-y-8">
+        <div className="space-y-3 border-b border-white/[0.06] pb-8">
+          <Skeleton className="h-9 w-48 bg-white/[0.06]" />
+          <Skeleton className="h-4 w-full max-w-md bg-white/[0.06]" />
+        </div>
+        <div className="grid gap-8 xl:grid-cols-2">
+          <Skeleton className="min-h-[420px] rounded-xl bg-white/[0.06]" />
+          <Skeleton className="min-h-[420px] rounded-xl bg-white/[0.06]" />
+        </div>
       </div>
     );
   }
 
   if (notFound || !storeQ.data || !previewStore || !baseSettings) {
     return (
-      <Card className="border-zinc-800 bg-zinc-950/60">
+      <Card className="mx-auto max-w-lg border-white/[0.06] bg-white/[0.02] shadow-none">
         <CardHeader>
-          <CardTitle className="text-white">Creá tu tienda primero</CardTitle>
+          <CardTitle>Creá tu tienda primero</CardTitle>
           <CardDescription>
             La personalización visual está disponible una vez que tengas una tienda activa.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" className="rounded-full shadow-none">
             <Link href="/dashboard/tienda">Ir a Mi tienda</Link>
           </Button>
         </CardContent>
@@ -207,27 +216,32 @@ export default function AparienciaPage() {
   const store = storeQ.data;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Apariencia</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Colores, banner, carrusel y secciones de tu tienda pública. Vista previa en vivo.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={!dirty} onClick={() => revertDraft()}>
-            Deshacer cambios
-          </Button>
-          <Button
-            type="button"
-            disabled={!dirty || patchSettingsMu.isPending}
-            onClick={() => saveVisualSettings()}
-          >
-            {patchSettingsMu.isPending ? 'Guardando…' : 'Guardar'}
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-10">
+      <PageHeader
+        title="Apariencia"
+        description="Colores, banner, carrusel y secciones de tu tienda pública. Vista previa en vivo."
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full border-white/[0.1]"
+              disabled={!dirty}
+              onClick={() => revertDraft()}
+            >
+              Deshacer cambios
+            </Button>
+            <Button
+              type="button"
+              className="rounded-full shadow-none"
+              disabled={!dirty || patchSettingsMu.isPending}
+              onClick={() => saveVisualSettings()}
+            >
+              {patchSettingsMu.isPending ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-8 xl:grid-cols-2">
         <div className="space-y-6">

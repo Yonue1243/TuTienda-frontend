@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package } from 'lucide-react';
+import { Package, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { ProductDto, StorePublic } from '@/lib/types';
 import { AxiosError } from 'axios';
@@ -18,7 +18,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type CategoryRow = { id: string; name: string };
 
@@ -61,6 +70,18 @@ export default function ProductosPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eName, setEName] = useState('');
+  const [ePrice, setEPrice] = useState('');
+  const [eDescription, setEDescription] = useState('');
+  const [eCategoryId, setECategoryId] = useState('');
+  const [eStock, setEStock] = useState('');
+  const [eImageUrl, setEImageUrl] = useState('');
+  const [eVisible, setEVisible] = useState(true);
+  const [editMsg, setEditMsg] = useState<string | null>(null);
+  const [editImageError, setEditImageError] = useState<string | null>(null);
+
   const createMu = useMutation({
     mutationFn: async () => {
       const payload: Record<string, unknown> = {
@@ -102,6 +123,76 @@ export default function ProductosPage() {
     },
   });
 
+  const updateMu = useMutation({
+    mutationFn: async () => {
+      if (!editId) throw new Error('Sin producto');
+      const trimmedImg = eImageUrl.trim();
+      if (!trimmedImg) {
+        throw new Error('IMAGE_REQUIRED');
+      }
+      const desc = eDescription.trim();
+      const payload: Record<string, unknown> = {
+        name: eName.trim(),
+        price: Number(ePrice),
+        imageUrl: trimmedImg,
+        visible: eVisible,
+        description: desc === '' ? null : desc,
+        categoryId: eCategoryId ? eCategoryId : null,
+        stock: eStock === '' ? null : Number(eStock),
+      };
+      const { data } = await api.patch<ProductDto>(`/products/${editId}`, payload);
+      return data;
+    },
+    onSuccess: async () => {
+      setEditMsg(null);
+      setEditImageError(null);
+      await qc.invalidateQueries({ queryKey: ['products'] });
+      closeEdit();
+    },
+    onError: (e: unknown) => {
+      const ax = e as AxiosError<{ message?: string | string[] }>;
+      if (e instanceof Error && e.message === 'IMAGE_REQUIRED') {
+        setEditImageError('La imagen del producto es obligatoria.');
+        setEditMsg(null);
+        return;
+      }
+      const m = ax.response?.data?.message;
+      setEditMsg(Array.isArray(m) ? m.join(', ') : m ?? 'Error al guardar');
+    },
+  });
+
+  function openEdit(p: ProductDto) {
+    setEditId(p.id);
+    setEName(p.name);
+    setEPrice(String(Number(p.price)));
+    setEDescription(p.description ?? '');
+    setECategoryId(p.categoryId ?? '');
+    setEStock(p.stock != null ? String(p.stock) : '');
+    setEImageUrl(p.imageUrl);
+    setEVisible(p.visible);
+    setEditMsg(null);
+    setEditImageError(null);
+    setEditOpen(true);
+  }
+
+  function closeEdit() {
+    setEditOpen(false);
+    setEditId(null);
+    setEditMsg(null);
+    setEditImageError(null);
+  }
+
+  function submitEdit(e: React.FormEvent) {
+    e.preventDefault();
+    setEditMsg(null);
+    setEditImageError(null);
+    if (!eImageUrl.trim()) {
+      setEditImageError('Subí o mantené una imagen del producto.');
+      return;
+    }
+    updateMu.mutate();
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
@@ -115,6 +206,7 @@ export default function ProductosPage() {
 
   const store = storeQ.data;
   const pending = createMu.isPending;
+  const editPending = updateMu.isPending;
 
   if (storeQ.isLoading) {
     return (
@@ -331,19 +423,31 @@ export default function ProductosPage() {
                         )}
                       </td>
                       <td className="px-4 py-4 text-right sm:px-5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
-                          onClick={() => {
-                            if (confirm('¿Eliminar este producto?')) {
-                              deleteMu.mutate(p.id);
-                            }
-                          }}
-                        >
-                          Eliminar
-                        </Button>
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+                            onClick={() => openEdit(p)}
+                          >
+                            <Pencil className="mr-1 size-3.5 opacity-80" aria-hidden />
+                            Editar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                            onClick={() => {
+                              if (confirm('¿Eliminar este producto?')) {
+                                deleteMu.mutate(p.id);
+                              }
+                            }}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -360,6 +464,142 @@ export default function ProductosPage() {
           )}
         </div>
       </section>
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (!open && !editPending) closeEdit();
+        }}
+      >
+        <DialogContent
+          className="max-h-[min(90vh,720px)] overflow-y-auto border-white/[0.08] bg-zinc-950 text-white sm:max-w-xl"
+          onPointerDownOutside={(ev) => {
+            if (editPending) ev.preventDefault();
+          }}
+          onEscapeKeyDown={(ev) => {
+            if (editPending) ev.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">Editar producto</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Cambiá los datos y guardá. La imagen sigue siendo obligatoria en el catálogo público.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitEdit} className="grid gap-5 pt-1">
+            <div>
+              <ImageDropzone
+                label="Imagen del producto"
+                bucket="product-images"
+                buildPath={buildProductPath}
+                value={eImageUrl}
+                onChange={(url) => {
+                  setEImageUrl(url);
+                  setEditImageError(null);
+                }}
+                disabled={editPending}
+                required
+                hint="Obligatorio · JPG, PNG, WEBP o GIF · máx. 5 MB"
+              />
+              {editImageError ? <p className="mt-2 text-xs text-rose-400">{editImageError}</p> : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="e-name">Nombre</Label>
+                <Input
+                  id="e-name"
+                  required
+                  value={eName}
+                  onChange={(ev) => setEName(ev.target.value)}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-price">Precio</Label>
+                <Input
+                  id="e-price"
+                  required
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={ePrice}
+                  onChange={(ev) => setEPrice(ev.target.value)}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-cat">Categoría</Label>
+                <select
+                  id="e-cat"
+                  value={eCategoryId}
+                  onChange={(ev) => setECategoryId(ev.target.value)}
+                  disabled={editPending}
+                  className="flex h-9 w-full rounded-md border border-white/[0.08] bg-zinc-900 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Sin categoría</option>
+                  {(categories.data ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-stock">Stock (opcional)</Label>
+                <Input
+                  id="e-stock"
+                  type="number"
+                  min={0}
+                  value={eStock}
+                  onChange={(ev) => setEStock(ev.target.value)}
+                  placeholder="Vacío = sin límite"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-zinc-900/50 px-3 py-2.5 sm:col-span-2">
+                <div>
+                  <Label htmlFor="e-visible" className="text-sm font-medium text-white">
+                    Visible en la tienda
+                  </Label>
+                  <p className="text-xs text-zinc-500">Si está desactivado, no aparece en el catálogo público.</p>
+                </div>
+                <Switch id="e-visible" checked={eVisible} onCheckedChange={setEVisible} disabled={editPending} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="e-desc">Descripción</Label>
+                <Textarea
+                  id="e-desc"
+                  value={eDescription}
+                  onChange={(ev) => setEDescription(ev.target.value)}
+                  rows={3}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+            </div>
+
+            {editMsg ? (
+              <Alert variant="destructive" className="border-white/[0.08]">
+                <AlertTitle>No se pudo guardar</AlertTitle>
+                <AlertDescription>{editMsg}</AlertDescription>
+              </Alert>
+            ) : null}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" disabled={editPending} onClick={() => closeEdit()}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={editPending} className="shadow-none">
+                {editPending ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

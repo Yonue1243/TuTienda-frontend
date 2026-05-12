@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   ClipboardList,
+  Images,
   LayoutDashboard,
   Menu,
   Package,
-  Palette,
   Store as StoreIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 const nav = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
   { href: '/dashboard/tienda', label: 'Mi tienda', icon: StoreIcon },
-  { href: '/dashboard/apariencia', label: 'Apariencia', icon: Palette },
+  { href: '/dashboard/contenido', label: 'Contenido', icon: Images },
   { href: '/dashboard/productos', label: 'Productos', icon: Package },
   { href: '/dashboard/pedidos', label: 'Pedidos', icon: ClipboardList },
 ] as const;

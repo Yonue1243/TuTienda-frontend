@@ -114,7 +114,7 @@ export default function DashboardHomePage() {
           <Link href="/dashboard/pedidos">Ver pedidos</Link>
         </Button>
         <Button variant="ghost" size="sm" className="rounded-full text-zinc-400 hover:text-white" asChild>
-          <Link href="/dashboard/apariencia">Apariencia</Link>
+          <Link href="/dashboard/contenido">Contenido</Link>
         </Button>
       </div>
     </div>

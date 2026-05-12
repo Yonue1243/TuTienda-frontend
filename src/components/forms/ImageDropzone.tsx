@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { uploadViaSignedUrl, validateImageFile } from '@/lib/storage-upload';
 
 type Bucket = 'logos' | 'product-images' | 'banners' | 'carousel';
@@ -26,7 +26,7 @@ export function ImageDropzone({
   hint,
   required,
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +48,7 @@ export function ImageDropzone({
   }, [value]);
 
   const displaySrc = localPreview || value || null;
+  const blocked = disabled || uploading;
 
   async function processFile(file: File) {
     setError(null);
@@ -87,7 +88,7 @@ export function ImageDropzone({
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    if (disabled || uploading) return;
+    if (blocked) return;
     const file = e.dataTransfer.files?.[0];
     if (file) void processFile(file);
   };
@@ -95,14 +96,14 @@ export function ImageDropzone({
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <label className="text-xs font-medium tracking-wide text-zinc-400">
+        <span className="text-xs font-medium tracking-wide text-zinc-400">
           {label}
           {required ? <span className="text-rose-400"> *</span> : null}
-        </label>
+        </span>
         {value && !required ? (
           <button
             type="button"
-            disabled={disabled || uploading}
+            disabled={blocked}
             onClick={() => {
               if (localPreview) URL.revokeObjectURL(localPreview);
               setLocalPreview(null);
@@ -115,13 +116,22 @@ export function ImageDropzone({
         ) : null}
       </div>
 
-      <button
-        type="button"
-        disabled={disabled || uploading}
-        onClick={() => inputRef.current?.click()}
+      <input
+        id={inputId}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="sr-only"
+        onChange={onInputChange}
+        disabled={blocked}
+        aria-label={label}
+      />
+
+      {/* <label for> + file input hermanos: válido dentro de <form> y no dispara submit como un botón */}
+      <label
+        htmlFor={blocked ? undefined : inputId}
         onDragEnter={(e) => {
           e.preventDefault();
-          setDragOver(true);
+          if (!blocked) setDragOver(true);
         }}
         onDragLeave={(e) => {
           e.preventDefault();
@@ -129,21 +139,12 @@ export function ImageDropzone({
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
-        className={`group relative flex w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed px-4 py-10 text-center transition ${
+        className={`group relative flex w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed px-4 py-10 text-center transition ${
           dragOver
             ? 'border-indigo-400 bg-indigo-500/10'
             : 'border-zinc-700 bg-zinc-950/60 hover:border-zinc-500 hover:bg-zinc-900/40'
-        } disabled:cursor-not-allowed disabled:opacity-60`}
+        } ${blocked ? 'cursor-not-allowed opacity-60' : ''}`}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={onInputChange}
-          disabled={disabled || uploading}
-        />
-
         {displaySrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -165,7 +166,7 @@ export function ImageDropzone({
             <div className="h-9 w-9 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
           </div>
         ) : null}
-      </button>
+      </label>
 
       {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
       {error ? <p className="text-xs text-rose-300">{error}</p> : null}

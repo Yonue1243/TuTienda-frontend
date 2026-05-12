@@ -43,8 +43,8 @@ export function StorefrontEmblaCarousel({ slides, className }: Props) {
     'inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/95 text-[color:var(--sf-text)] shadow-md backdrop-blur-sm motion-safe:transition-colors hover:bg-[color:var(--sf-product-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sf-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--sf-bg)] disabled:pointer-events-none disabled:opacity-40';
 
   return (
-    <div className={cn('relative', className)}>
-      <div className="relative overflow-hidden" ref={emblaRef}>
+    <div className={cn('relative motion-safe:transition-shadow motion-safe:duration-300', className)}>
+      <div className="relative overflow-hidden motion-safe:transition-[box-shadow] motion-safe:duration-300" ref={emblaRef}>
         <div className="flex">
           {slides.map((slide) => (
             <div

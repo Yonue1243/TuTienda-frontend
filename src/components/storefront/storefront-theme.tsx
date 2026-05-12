@@ -1,72 +1,44 @@
 import type { CSSProperties } from 'react';
 import type { StoreSettingsDto } from '@/lib/types';
 
+/** Valores fijos de identidad TuTienda (coinciden con tokens premium en globals). */
 export const FALLBACK_STORE_SETTINGS: StoreSettingsDto = {
   id: '',
   storeId: '',
-  primaryColor: '#6366f1',
-  secondaryColor: '#8b5cf6',
-  backgroundColor: '#030712',
-  headerBackgroundColor: '#030712',
-  productCardBackgroundColor: '#18181b',
-  textColor: '#f4f4f5',
-  buttonColor: '#6366f1',
-  buttonTextColor: '#ffffff',
   showBanner: true,
   bannerUrl: null,
-  carouselEnabled: false,
-  categoriesSectionEnabled: true,
-  featuredSectionEnabled: true,
-  descriptionSectionEnabled: true,
-  layoutStyle: 'grid',
-  cardStyle: 'rounded',
-  cornerRadius: 'lg',
   createdAt: '',
   updatedAt: '',
 };
 
+/**
+ * Solo combina ajustes de banner desde el servidor (y borrador opcional del dashboard).
+ * La paleta y layout de la tienda pública son fijos en `storefrontCssVars`.
+ */
 export function mergeStoreSettings(
   server: StoreSettingsDto | null | undefined,
   draft?: Partial<StoreSettingsDto> | null,
 ): StoreSettingsDto {
   const base = server ?? FALLBACK_STORE_SETTINGS;
-  const merged = { ...base, ...draft };
-  if (!merged.headerBackgroundColor?.trim()) {
-    merged.headerBackgroundColor = merged.backgroundColor;
-  }
-  if (!merged.productCardBackgroundColor?.trim()) {
-    merged.productCardBackgroundColor = FALLBACK_STORE_SETTINGS.productCardBackgroundColor;
-  }
-  return merged;
+  return { ...base, ...draft };
 }
 
-export function storefrontCssVars(settings: StoreSettingsDto): CSSProperties {
-  const headerBg =
-    settings.headerBackgroundColor?.trim() || settings.backgroundColor;
-  const productCardBg =
-    settings.productCardBackgroundColor?.trim() ||
-    FALLBACK_STORE_SETTINGS.productCardBackgroundColor;
+/** Variables CSS fijas para toda la tienda pública (sin personalización por comercio). */
+export function storefrontCssVars(): CSSProperties {
   return {
-    '--sf-primary': settings.primaryColor,
-    '--sf-secondary': settings.secondaryColor,
-    '--sf-bg': settings.backgroundColor,
-    '--sf-header-bg': headerBg,
-    '--sf-product-card-bg': productCardBg,
-    '--sf-text': settings.textColor,
-    '--sf-muted': `${settings.textColor}99`,
-    '--sf-btn': settings.buttonColor,
-    '--sf-btn-text': settings.buttonTextColor,
-    '--sf-card-border': `${settings.textColor}26`,
+    '--sf-primary': '#6366f1',
+    '--sf-secondary': '#818cf8',
+    '--sf-bg': '#030712',
+    '--sf-header-bg': '#030712',
+    '--sf-product-card-bg': '#0a0a0f',
+    '--sf-text': '#f4f4f5',
+    '--sf-muted': '#a1a1aa',
+    '--sf-btn': '#6366f1',
+    '--sf-btn-text': '#fafafa',
+    '--sf-card-border': 'rgba(244, 244, 245, 0.12)',
   } as CSSProperties;
 }
 
-export function radiusClass(cornerRadius: string): string {
-  switch (cornerRadius) {
-    case 'sm':
-      return 'rounded-lg';
-    case 'md':
-      return 'rounded-xl';
-    default:
-      return 'rounded-2xl';
-  }
+export function storefrontRadiusClass(): string {
+  return 'rounded-2xl';
 }

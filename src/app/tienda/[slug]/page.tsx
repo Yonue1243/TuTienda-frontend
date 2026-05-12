@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { StorePublic, StoreSettingsDto } from '@/lib/types';
+import type { ProductDto, StorePublic, StoreSettingsDto } from '@/lib/types';
 import { useCartStore } from '@/stores/cart-store';
 import {
   StorefrontHero,
@@ -23,6 +25,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { StorefrontPageSkeleton } from '@/components/storefront/storefront-page-skeleton';
+import { cn } from '@/lib/utils';
 
 export default function PublicTiendaPage() {
   const params = useParams<{ slug: string }>();
@@ -32,9 +35,28 @@ export default function PublicTiendaPage() {
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const setQty = useCartStore((s) => s.setQty);
+  const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clear);
 
-  const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartBumpKey, setCartBumpKey] = useState(0);
+  const reduceMotion = useReducedMotion();
+
+  const onAddToCart = useCallback(
+    (p: ProductDto) => {
+      addItem({
+        productId: p.id,
+        name: p.name,
+        unitPrice: Number(p.price),
+        imageUrl: p.imageUrl,
+        quantity: 1,
+      });
+      const label = p.name.length > 42 ? `${p.name.slice(0, 40)}…` : p.name;
+      toast.success(`“${label}” agregado al carrito`);
+      setCartBumpKey((k) => k + 1);
+    },
+    [addItem],
+  );
 
   useEffect(() => {
     ensureShop(slug);
@@ -75,7 +97,7 @@ export default function PublicTiendaPage() {
       setCustomerName('');
       setCustomerPhone('');
       setNotes('');
-      setMobileCartOpen(false);
+      setCartOpen(false);
     },
     onError: () => {
       setOrderErr(true);
@@ -87,6 +109,7 @@ export default function PublicTiendaPage() {
     () => items.reduce((acc, i) => acc + i.unitPrice * i.quantity, 0),
     [items],
   );
+  const totalUnits = useMemo(() => items.reduce((acc, i) => acc + i.quantity, 0), [items]);
 
   const orderPending = orderMu.isPending;
   const cartProps = useMemo(
@@ -100,6 +123,8 @@ export default function PublicTiendaPage() {
       onCustomerPhone: setCustomerPhone,
       onNotes: setNotes,
       onQty: setQty,
+      onRemoveLine: removeItem,
+      onClearCart: clearCart,
       orderPending,
       orderMsg,
       orderErr,
@@ -109,7 +134,20 @@ export default function PublicTiendaPage() {
         orderMu.mutate();
       },
     }),
-    [items, total, customerName, customerPhone, notes, orderPending, orderMsg, orderErr, orderMu, setQty],
+    [
+      items,
+      total,
+      customerName,
+      customerPhone,
+      notes,
+      orderPending,
+      orderMsg,
+      orderErr,
+      orderMu,
+      setQty,
+      removeItem,
+      clearCart,
+    ],
   );
 
   if (store.isLoading) {
@@ -135,61 +173,73 @@ export default function PublicTiendaPage() {
     <StorefrontThemeShell settings={s.settings}>
       <StorefrontHero store={s} settings={settings} />
 
-      <main className="mx-auto grid max-w-6xl gap-10 px-4 pb-28 pt-8 sm:px-6 md:gap-12 md:pb-12 lg:grid-cols-[1fr_min(380px,34vw)] lg:gap-10 lg:px-6 lg:pb-12 lg:pt-10">
+      <main className="mx-auto max-w-7xl px-4 pb-[max(6rem,env(safe-area-inset-bottom))] pt-8 sm:px-6 md:pt-10 lg:px-8 lg:pb-28 lg:pt-12">
         <StorefrontPublicSections
           className="mx-0 max-w-none px-0 py-0"
           store={s}
           settings={settings}
           slides={slides}
-          onAddToCart={(p) =>
-            addItem({
-              productId: p.id,
-              name: p.name,
-              unitPrice: Number(p.price),
-              imageUrl: p.imageUrl,
-              quantity: 1,
-            })
-          }
+          onAddToCart={onAddToCart}
         />
-
-        <aside className="hidden lg:block">
-          <div className="sticky top-24 space-y-6 rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)]/85 p-5 shadow-sm sm:p-6">
-            <StorefrontCartPanel {...cartProps} />
-          </div>
-        </aside>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/95 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-[color:var(--sf-bg)]/85 lg:hidden">
-        <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] px-4 py-3 text-sm font-semibold text-[color:var(--sf-text)] shadow-sm motion-safe:active:scale-[0.99]"
-            >
-              <ShoppingBag className="size-4 shrink-0 opacity-90" aria-hidden />
-              <span>Carrito</span>
-              {items.length > 0 ? (
-                <span className="tabular-nums text-[color:var(--sf-muted)]">
-                  · {items.length} · ${total.toFixed(2)}
+      <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'fixed z-40 flex size-14 items-center justify-center rounded-2xl shadow-lg ring-2 ring-black/10',
+              'bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]',
+              'motion-safe:transition-transform motion-safe:duration-200 motion-safe:active:scale-[0.96]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sf-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--sf-bg)]',
+            )}
+            style={{
+              backgroundColor: 'var(--sf-btn)',
+              color: 'var(--sf-btn-text)',
+            }}
+            aria-label={
+              items.length > 0
+                ? `Abrir carrito, ${totalUnits} artículos, total ${total.toFixed(2)} pesos`
+                : 'Abrir carrito'
+            }
+          >
+            <ShoppingBag className="size-6 shrink-0 opacity-95" aria-hidden />
+            {totalUnits > 0 ? (
+              reduceMotion ? (
+                <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-text)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-bg)] ring-2 ring-[color:var(--sf-btn)]">
+                  {totalUnits > 99 ? '99+' : totalUnits}
                 </span>
               ) : (
-                <span className="text-[color:var(--sf-muted)]">· vacío</span>
-              )}
-            </button>
-          </SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="max-h-[90vh] overflow-hidden rounded-t-3xl border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] p-0 text-[color:var(--sf-text)]"
-          >
-            <SheetHeader className="border-b border-[color:var(--sf-card-border)] px-6 pb-4 pt-6 text-left">
-              <SheetTitle className="font-semibold text-[color:var(--sf-text)]">Tu pedido</SheetTitle>
-            </SheetHeader>
-            <div className="max-h-[calc(90vh-5rem)] overflow-y-auto px-6 pb-10 pt-4">
-              <StorefrontCartPanel {...cartProps} heading="Resumen" />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+                <motion.span
+                  key={cartBumpKey}
+                  className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-text)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-bg)] ring-2 ring-[color:var(--sf-btn)]"
+                  initial={{ scale: 0.88 }}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.38, ease: 'easeOut' }}
+                >
+                  {totalUnits > 99 ? '99+' : totalUnits}
+                </motion.span>
+              )
+            ) : null}
+          </button>
+        </SheetTrigger>
+        <SheetContent
+          side="right"
+          className="flex h-full w-full max-w-md flex-col border-border bg-card p-0 text-card-foreground sm:max-w-sm"
+        >
+          <SheetHeader className="shrink-0 border-b border-border px-5 pb-4 pt-[max(1.5rem,env(safe-area-inset-top))] text-left">
+            <SheetTitle className="font-semibold text-foreground">Tu pedido</SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
+            <StorefrontCartPanel
+              {...cartProps}
+              heading="Resumen"
+              variant="drawer"
+              onContinueShopping={() => setCartOpen(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </StorefrontThemeShell>
   );
 }

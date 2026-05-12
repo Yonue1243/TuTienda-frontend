@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { StorePublic } from '@/lib/types';
+import type { StorePublic, StoreSettingsDto } from '@/lib/types';
 import { AxiosError } from 'axios';
 import { useAuthStore } from '@/stores/auth-store';
 import { PhoneField } from '@/components/forms/PhoneField';
@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function TiendaSettingsPage() {
@@ -40,18 +41,45 @@ export default function TiendaSettingsPage() {
   const [description, setDescription] = useState('');
   const [phone, setPhone] = useState<string | undefined>(undefined);
   const [logoUrl, setLogoUrl] = useState('');
+  const [showBanner, setShowBanner] = useState(true);
+  const [bannerUrl, setBannerUrl] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (q.data) {
-      setName(q.data.name);
-      setSlug(q.data.slug);
-      setDescription(q.data.description ?? '');
-      setPhone(q.data.phone ?? undefined);
-      setLogoUrl(q.data.logoUrl ?? '');
+    const s = q.data;
+    if (!s?.id) return;
+    setName(s.name);
+    setSlug(s.slug);
+    setDescription(s.description ?? '');
+    setPhone(s.phone ?? undefined);
+    setLogoUrl(s.logoUrl ?? '');
+    const st = s.settings;
+    if (st) {
+      setShowBanner(st.showBanner);
+      setBannerUrl(st.bannerUrl ?? '');
     }
-  }, [q.data]);
+    // Hidratar solo cuando cambia la tienda (id); no en cada refetch de React Query (evita reset al subir banner).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps intencionales: [q.data?.id]
+  }, [q.data?.id]);
+
+  const updateBannerMu = useMutation({
+    mutationFn: async (body: Pick<StoreSettingsDto, 'showBanner' | 'bannerUrl'>) => {
+      const { data } = await api.patch<StoreSettingsDto>('/stores/me/settings', body);
+      return data;
+    },
+    onSuccess: async (data) => {
+      setMsg('Banner actualizado.');
+      setShowBanner(data.showBanner);
+      setBannerUrl(data.bannerUrl ?? '');
+      await qc.invalidateQueries({ queryKey: ['store', 'me'] });
+    },
+    onError: (e: unknown) => {
+      const ax = e as AxiosError<{ message?: string | string[] }>;
+      const m = ax.response?.data?.message;
+      setMsg(Array.isArray(m) ? m.join(', ') : m ?? 'No se pudo guardar el banner');
+    },
+  });
 
   const createMu = useMutation({
     mutationFn: async () => {
@@ -146,6 +174,7 @@ export default function TiendaSettingsPage() {
   }
 
   const pending = createMu.isPending || updateMu.isPending;
+  const bannerPending = updateBannerMu.isPending;
   const msgOk =
     msg &&
     (msg.includes('correctamente') || msg.includes('guardados') || msg.includes('guardado'));
@@ -263,6 +292,57 @@ export default function TiendaSettingsPage() {
             />
           </CardContent>
         </Card>
+
+        {exists && q.data?.id ? (
+          <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
+            <CardHeader className="border-b border-white/[0.06] pb-4">
+              <CardTitle className="text-lg">Banner</CardTitle>
+              <CardDescription>
+                Imagen ancha en la parte superior de tu tienda pública (opcional). El estilo es fijo en la plataforma.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="show-banner-tienda">Mostrar banner</Label>
+                  <p className="text-xs text-zinc-500">Requiere una imagen cargada.</p>
+                </div>
+                <Switch
+                  id="show-banner-tienda"
+                  checked={showBanner}
+                  onCheckedChange={setShowBanner}
+                  disabled={bannerPending}
+                />
+              </div>
+              <ImageDropzone
+                label="Imagen del banner"
+                bucket="banners"
+                buildPath={(file) =>
+                  `${q.data!.id}/banner-${Date.now()}${extensionFromFileName(file.name)}`
+                }
+                value={bannerUrl}
+                onChange={(url) => setBannerUrl(url?.trim() ?? '')}
+                disabled={bannerPending || !user?.id}
+                hint="Formato panorámico recomendado."
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full"
+                disabled={bannerPending}
+                onClick={() => {
+                  setMsg(null);
+                  updateBannerMu.mutate({
+                    showBanner,
+                    bannerUrl: bannerUrl.trim() ? bannerUrl.trim() : null,
+                  });
+                }}
+              >
+                {bannerPending ? 'Guardando…' : 'Guardar banner'}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {msg ? (
           <Alert variant={msgOk ? 'default' : 'destructive'} className="border-white/[0.08]">

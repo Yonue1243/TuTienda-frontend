@@ -275,14 +275,6 @@ export function StorefrontPublicSections({
           {sectionHeading('Tienda', 'Catálogo')}
           <div className="relative -mx-1">
             <div
-              className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-6 bg-gradient-to-r from-[color:var(--sf-bg)] to-transparent sm:w-8"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-6 bg-gradient-to-l from-[color:var(--sf-bg)] to-transparent sm:w-8"
-              aria-hidden
-            />
-            <div
               role="tablist"
               aria-label="Categorías del catálogo"
               className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

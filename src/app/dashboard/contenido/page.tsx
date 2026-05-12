@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '@/lib/api';
-import type { CarouselSlideDto, CategoryDto, ProductDto, StorePublic } from '@/lib/types';
+import type { CarouselSlideDto, ProductDto, StorePublic } from '@/lib/types';
 import { extensionFromFileName } from '@/lib/storage-upload';
 import { ImageDropzone } from '@/components/forms/ImageDropzone';
 import { Button } from '@/components/ui/button';
@@ -80,37 +80,11 @@ export default function ContenidoPage() {
     },
   });
 
-  const reorderCategoriesMu = useMutation({
-    mutationFn: async (items: { id: string; sortOrder: number }[]) => {
-      const { data } = await api.patch<CategoryDto[]>('/categories/reorder', { items });
-      return data;
-    },
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ['store', 'me'] });
-    },
-  });
-
   const [slideTitle, setSlideTitle] = useState('');
   const [slideSubtitle, setSlideSubtitle] = useState('');
   const [slideCtaLabel, setSlideCtaLabel] = useState('');
   const [slideCtaHref, setSlideCtaHref] = useState('');
   const [slideImageUrl, setSlideImageUrl] = useState<string | null>(null);
-
-  const sortedCategories = useMemo(() => {
-    const cats = storeQ.data?.categories ?? [];
-    return [...cats].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [storeQ.data?.categories]);
-
-  function moveCategory(index: number, dir: -1 | 1) {
-    const next = [...sortedCategories];
-    const j = index + dir;
-    if (j < 0 || j >= next.length) return;
-    const a = next[index];
-    const b = next[j];
-    next[index] = b;
-    next[j] = a;
-    reorderCategoriesMu.mutate(next.map((c, i) => ({ id: c.id, sortOrder: i })));
-  }
 
   if (storeQ.isLoading) {
     return (
@@ -144,7 +118,15 @@ export default function ContenidoPage() {
     <div className="mx-auto max-w-3xl space-y-10 pb-16">
       <PageHeader
         title="Contenido de la vitrina"
-        description="Carrusel, orden de categorías y productos destacados. El diseño visual es único para toda la plataforma."
+        description={
+          <>
+            Carrusel y productos destacados. Las categorías y su orden las gestionás en{' '}
+            <Link className="font-medium text-indigo-400 underline-offset-2 hover:underline" href="/dashboard/categorias">
+              Categorías
+            </Link>
+            .
+          </>
+        }
       />
 
       <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
@@ -260,46 +242,6 @@ export default function ContenidoPage() {
               Agregar slide
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
-        <CardHeader>
-          <CardTitle className="text-lg">Orden de categorías</CardTitle>
-          <CardDescription>Afecta las pestañas del catálogo en la tienda pública.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-2">
-          {sortedCategories.map((c, index) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-200"
-            >
-              <span className="truncate">{c.name}</span>
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={index === 0 || reorderCategoriesMu.isPending}
-                  onClick={() => moveCategory(index, -1)}
-                >
-                  ↑
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={index === sortedCategories.length - 1 || reorderCategoriesMu.isPending}
-                  onClick={() => moveCategory(index, 1)}
-                >
-                  ↓
-                </Button>
-              </div>
-            </div>
-          ))}
-          {sortedCategories.length === 0 ? (
-            <p className="text-sm text-zinc-500">No hay categorías.</p>
-          ) : null}
         </CardContent>
       </Card>
 

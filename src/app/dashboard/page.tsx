@@ -110,6 +110,9 @@ export default function DashboardHomePage() {
         <Button variant="secondary" className="rounded-full shadow-none" size="sm" asChild>
           <Link href="/dashboard/productos">Gestionar productos</Link>
         </Button>
+        <Button variant="secondary" className="rounded-full shadow-none" size="sm" asChild>
+          <Link href="/dashboard/categorias">Gestionar categorías</Link>
+        </Button>
         <Button variant="ghost" size="sm" className="rounded-full text-zinc-400 hover:text-white" asChild>
           <Link href="/dashboard/pedidos">Ver pedidos</Link>
         </Button>

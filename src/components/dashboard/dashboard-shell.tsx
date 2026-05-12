@@ -10,6 +10,7 @@ import {
   Menu,
   Package,
   Store as StoreIcon,
+  Tags,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { api } from '@/lib/api';
@@ -30,6 +31,7 @@ const nav = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
   { href: '/dashboard/tienda', label: 'Mi tienda', icon: StoreIcon },
   { href: '/dashboard/contenido', label: 'Contenido', icon: Images },
+  { href: '/dashboard/categorias', label: 'Categorías', icon: Tags },
   { href: '/dashboard/productos', label: 'Productos', icon: Package },
   { href: '/dashboard/pedidos', label: 'Pedidos', icon: ClipboardList },
 ] as const;

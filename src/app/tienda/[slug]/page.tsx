@@ -1,18 +1,28 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
+import { ShoppingBag } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { StorePublic, StoreSettingsDto } from '@/lib/types';
 import { useCartStore } from '@/stores/cart-store';
 import {
-  StorefrontPublicHeader,
+  StorefrontHero,
   StorefrontPublicSections,
   StorefrontThemeShell,
 } from '@/components/storefront/storefront-public';
+import { StorefrontCartPanel } from '@/components/storefront/storefront-cart';
 import { mergeStoreSettings } from '@/components/storefront/storefront-theme';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { StorefrontPageSkeleton } from '@/components/storefront/storefront-page-skeleton';
 
 export default function PublicTiendaPage() {
   const params = useParams<{ slug: string }>();
@@ -23,6 +33,8 @@ export default function PublicTiendaPage() {
   const addItem = useCartStore((s) => s.addItem);
   const setQty = useCartStore((s) => s.setQty);
   const clearCart = useCartStore((s) => s.clear);
+
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   useEffect(() => {
     ensureShop(slug);
@@ -63,6 +75,7 @@ export default function PublicTiendaPage() {
       setCustomerName('');
       setCustomerPhone('');
       setNotes('');
+      setMobileCartOpen(false);
     },
     onError: () => {
       setOrderErr(true);
@@ -75,12 +88,32 @@ export default function PublicTiendaPage() {
     [items],
   );
 
+  const orderPending = orderMu.isPending;
+  const cartProps = useMemo(
+    () => ({
+      items,
+      total,
+      customerName,
+      customerPhone,
+      notes,
+      onCustomerName: setCustomerName,
+      onCustomerPhone: setCustomerPhone,
+      onNotes: setNotes,
+      onQty: setQty,
+      orderPending,
+      orderMsg,
+      orderErr,
+      onSubmit: () => {
+        setOrderMsg(null);
+        setOrderErr(false);
+        orderMu.mutate();
+      },
+    }),
+    [items, total, customerName, customerPhone, notes, orderPending, orderMsg, orderErr, orderMu, setQty],
+  );
+
   if (store.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
-        Cargando tienda…
-      </div>
-    );
+    return <StorefrontPageSkeleton />;
   }
 
   if (store.error || !store.data) {
@@ -100,9 +133,9 @@ export default function PublicTiendaPage() {
 
   return (
     <StorefrontThemeShell settings={s.settings}>
-      <StorefrontPublicHeader store={s} settings={settings} />
+      <StorefrontHero store={s} settings={settings} />
 
-      <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_380px]">
+      <main className="mx-auto grid max-w-6xl gap-10 px-4 pb-28 pt-8 sm:px-6 md:gap-12 md:pb-12 lg:grid-cols-[1fr_min(380px,34vw)] lg:gap-10 lg:px-6 lg:pb-12 lg:pt-10">
         <StorefrontPublicSections
           className="mx-0 max-w-none px-0 py-0"
           store={s}
@@ -119,131 +152,44 @@ export default function PublicTiendaPage() {
           }
         />
 
-        <aside className="lg:sticky lg:top-24 h-fit space-y-6 rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)]/80 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--sf-text)' }}>
-            Carrito
-          </h2>
-          {items.length === 0 ? (
-            <p className="text-sm text-[color:var(--sf-muted)]">
-              Agregá productos desde el catálogo.
-            </p>
-          ) : (
-            <ul className="space-y-3 text-sm">
-              {items.map((i) => (
-                <li key={i.productId} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium" style={{ color: 'var(--sf-text)' }}>
-                      {i.name}
-                    </p>
-                    <p className="text-xs text-[color:var(--sf-muted)]">
-                      ${i.unitPrice.toFixed(2)} c/u
-                    </p>
-                  </div>
-                  <input
-                    type="number"
-                    min={1}
-                    value={i.quantity}
-                    onChange={(e) => setQty(i.productId, Number(e.target.value))}
-                    className="w-16 rounded-lg border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)] px-2 py-1 text-xs"
-                    style={{ color: 'var(--sf-text)' }}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {items.length > 0 && (
-            <>
-              <div
-                className="flex justify-between border-t pt-4 text-sm font-semibold"
-                style={{
-                  borderColor: 'var(--sf-card-border)',
-                  color: 'var(--sf-text)',
-                }}
-              >
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-
-              <div
-                className="space-y-3 border-t pt-4"
-                style={{ borderColor: 'var(--sf-card-border)' }}
-              >
-                <input
-                  required
-                  placeholder="Tu nombre"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none ring-offset-2 focus:ring-2"
-                  style={
-                    {
-                      borderColor: 'var(--sf-card-border)',
-                      backgroundColor: 'var(--sf-bg)',
-                      color: 'var(--sf-text)',
-                      ['--tw-ring-color' as string]: 'var(--sf-primary)',
-                    } as CSSProperties
-                  }
-                />
-                <input
-                  required
-                  placeholder="Teléfono"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none ring-offset-2 focus:ring-2"
-                  style={
-                    {
-                      borderColor: 'var(--sf-card-border)',
-                      backgroundColor: 'var(--sf-bg)',
-                      color: 'var(--sf-text)',
-                      ['--tw-ring-color' as string]: 'var(--sf-primary)',
-                    } as CSSProperties
-                  }
-                />
-                <textarea
-                  placeholder="Notas para el comercio (opcional)"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none ring-offset-2 focus:ring-2"
-                  style={
-                    {
-                      borderColor: 'var(--sf-card-border)',
-                      backgroundColor: 'var(--sf-bg)',
-                      color: 'var(--sf-text)',
-                      ['--tw-ring-color' as string]: 'var(--sf-primary)',
-                    } as CSSProperties
-                  }
-                />
-                <button
-                  type="button"
-                  disabled={orderMu.isPending}
-                  onClick={() => {
-                    setOrderMsg(null);
-                    setOrderErr(false);
-                    orderMu.mutate();
-                  }}
-                  className="w-full rounded-xl py-3 text-sm font-semibold transition hover:opacity-95 disabled:opacity-60"
-                  style={{
-                    backgroundColor: 'var(--sf-btn)',
-                    color: 'var(--sf-btn-text)',
-                  }}
-                >
-                  {orderMu.isPending ? 'Enviando…' : 'Enviar pedido'}
-                </button>
-                {orderMsg ? (
-                  <p
-                    className={`text-center text-xs leading-relaxed ${
-                      orderErr ? 'text-red-400/95' : 'text-emerald-400/95'
-                    }`}
-                  >
-                    {orderMsg}
-                  </p>
-                ) : null}
-              </div>
-            </>
-          )}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 space-y-6 rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)]/85 p-5 shadow-sm sm:p-6">
+            <StorefrontCartPanel {...cartProps} />
+          </div>
         </aside>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)]/95 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-[color:var(--sf-bg)]/85 lg:hidden">
+        <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] px-4 py-3 text-sm font-semibold text-[color:var(--sf-text)] shadow-sm motion-safe:active:scale-[0.99]"
+            >
+              <ShoppingBag className="size-4 shrink-0 opacity-90" aria-hidden />
+              <span>Carrito</span>
+              {items.length > 0 ? (
+                <span className="tabular-nums text-[color:var(--sf-muted)]">
+                  · {items.length} · ${total.toFixed(2)}
+                </span>
+              ) : (
+                <span className="text-[color:var(--sf-muted)]">· vacío</span>
+              )}
+            </button>
+          </SheetTrigger>
+          <SheetContent
+            side="bottom"
+            className="max-h-[90vh] overflow-hidden rounded-t-3xl border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] p-0 text-[color:var(--sf-text)]"
+          >
+            <SheetHeader className="border-b border-[color:var(--sf-card-border)] px-6 pb-4 pt-6 text-left">
+              <SheetTitle className="font-semibold text-[color:var(--sf-text)]">Tu pedido</SheetTitle>
+            </SheetHeader>
+            <div className="max-h-[calc(90vh-5rem)] overflow-y-auto px-6 pb-10 pt-4">
+              <StorefrontCartPanel {...cartProps} heading="Resumen" />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </StorefrontThemeShell>
   );
 }

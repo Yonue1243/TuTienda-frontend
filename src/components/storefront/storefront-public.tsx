@@ -1,11 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import type { CarouselSlideDto, ProductDto, StorePublic, StoreSettingsDto } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { StorefrontEmblaCarousel } from './storefront-embla';
 import { mergeStoreSettings, radiusClass, storefrontCssVars } from './storefront-theme';
+
+export { StorefrontHero } from './storefront-hero';
+export { StorefrontHero as StorefrontPublicHeader } from './storefront-hero';
 
 export function StorefrontThemeShell({
   settings,
@@ -24,58 +27,12 @@ export function StorefrontThemeShell({
   );
 }
 
-export function StorefrontPublicHeader({
-  store,
-  settings,
-}: {
-  store: StorePublic;
-  settings: StoreSettingsDto;
-}) {
-  const accent = settings.primaryColor;
+function sectionHeading(title: string, subtitle?: string) {
   return (
-    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-6 sm:py-7">
-        {store.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.logoUrl}
-            alt=""
-            className={`${radiusClass(settings.cornerRadius)} h-14 w-14 object-cover ring-1 ring-[color:var(--sf-card-border)]`}
-          />
-        ) : (
-          <div
-            className={`flex h-14 w-14 items-center justify-center ${radiusClass(settings.cornerRadius)} text-lg font-bold`}
-            style={{
-              backgroundColor: `${accent}33`,
-              color: accent,
-            }}
-          >
-            {store.name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{store.name}</h1>
-          {store.phone ? (
-            <p className="mt-2 sm:mt-3">
-              <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--sf-muted)]">
-                Contacto
-              </span>
-              <br />
-              <a
-                href={`tel:${store.phone.replace(/\s/g, '')}`}
-                className="text-sm font-medium hover:underline"
-                style={{ color: 'var(--sf-primary)' }}
-              >
-                {store.phone}
-              </a>
-            </p>
-          ) : null}
-        </div>
-        <Link href="/" className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]">
-          Powered by Tu Tienda
-        </Link>
-      </div>
-    </header>
+    <div className="space-y-1">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--sf-muted)]">{title}</h2>
+      {subtitle ? <p className="text-lg font-semibold tracking-tight text-[color:var(--sf-text)]">{subtitle}</p> : null}
+    </div>
   );
 }
 
@@ -93,21 +50,34 @@ function ProductCard({
   const priceColor = settings.secondaryColor;
   return (
     <article
-      className={`overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] ${
-        flat ? '' : 'shadow-sm ring-1 ring-black/5'
-      }`}
+      className={cn(
+        `group/card overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] motion-safe:transition motion-safe:duration-200`,
+        flat ? '' : 'shadow-sm ring-1 ring-black/[0.04]',
+        'hover:-translate-y-0.5 hover:shadow-md hover:ring-black/[0.06]',
+      )}
     >
-      <div className="aspect-[4/3] bg-black/10">
+      <div className="relative aspect-square overflow-hidden bg-black/10 sm:aspect-[4/5]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+        <img
+          src={product.imageUrl}
+          alt=""
+          className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-300 group-hover/card:scale-[1.04]"
+        />
+        {product.featured ? (
+          <div className="absolute left-3 top-3">
+            <span
+              className={`inline-flex items-center rounded-full border border-[color:var(--sf-card-border)] bg-black/25 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--sf-primary)] backdrop-blur-sm ${r}`}
+            >
+              Destacado
+            </span>
+          </div>
+        ) : null}
       </div>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-4 sm:p-5">
         <div className="space-y-1.5">
-          <h3 className="text-[15px] font-semibold leading-snug sm:text-base">{product.name}</h3>
+          <h3 className="text-base font-semibold leading-snug tracking-tight sm:text-lg">{product.name}</h3>
           {product.description ? (
-            <p className="line-clamp-2 text-sm leading-relaxed text-[color:var(--sf-muted)]">
-              {product.description}
-            </p>
+            <p className="line-clamp-2 text-sm leading-relaxed text-[color:var(--sf-muted)]">{product.description}</p>
           ) : null}
         </div>
         <div className="flex items-center justify-between gap-3 pt-0.5">
@@ -118,7 +88,7 @@ function ProductCard({
             <button
               type="button"
               onClick={onAdd}
-              className={`px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-95 ${r}`}
+              className={`px-4 py-2 text-xs font-semibold shadow-sm motion-safe:transition motion-safe:duration-200 hover:brightness-105 active:scale-[0.98] ${r}`}
               style={{
                 backgroundColor: 'var(--sf-btn)',
                 color: 'var(--sf-btn-text)',
@@ -144,14 +114,9 @@ function ProductGrid({
 }) {
   const list = settings.layoutStyle === 'list';
   return (
-    <div className={list ? 'flex flex-col gap-4' : 'grid gap-4 sm:grid-cols-2'}>
+    <div className={list ? 'flex flex-col gap-5' : 'grid gap-5 sm:grid-cols-2'}>
       {products.map((p) => (
-        <ProductCard
-          key={p.id}
-          product={p}
-          settings={settings}
-          onAdd={onAdd ? () => onAdd(p) : undefined}
-        />
+        <ProductCard key={p.id} product={p} settings={settings} onAdd={onAdd ? () => onAdd(p) : undefined} />
       ))}
     </div>
   );
@@ -175,7 +140,7 @@ export function StorefrontPublicSections({
     () => [...store.categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [store.categories],
   );
-  const [tab, setTab] = useState<string | 'all'>('all');
+  const [tab, setTab] = useState<string>('all');
 
   const featuredList = useMemo(
     () => (settings.featuredSectionEnabled ? products.filter((p) => p.featured) : []),
@@ -194,88 +159,96 @@ export function StorefrontPublicSections({
 
   const showCarousel = settings.carouselEnabled && slides.length > 0;
 
-  return (
-    <div className={cn('mx-auto max-w-6xl space-y-10 px-6 py-10', className)}>
-      {settings.showBanner && settings.bannerUrl ? (
-        <div className={`overflow-hidden ${radiusClass(settings.cornerRadius)} border border-[color:var(--sf-card-border)]`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={settings.bannerUrl} alt="" className="max-h-[320px] w-full object-cover" />
-        </div>
-      ) : null}
+  const tabBase =
+    'shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sf-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--sf-bg)]';
 
+  return (
+    <div className={cn('mx-auto max-w-6xl space-y-12 px-6 py-10 md:space-y-14 md:py-12', className)}>
       {showCarousel ? (
         <StorefrontEmblaCarousel
           slides={slides}
-          className={`overflow-hidden ${radiusClass(settings.cornerRadius)} border border-[color:var(--sf-card-border)]`}
+          className={`overflow-hidden ${radiusClass(settings.cornerRadius)} border border-[color:var(--sf-card-border)] shadow-sm`}
         />
       ) : null}
 
       {settings.descriptionSectionEnabled && store.description ? (
-        <p className="max-w-3xl text-sm leading-relaxed text-[color:var(--sf-muted)]">{store.description}</p>
+        <>
+          <section className="max-w-3xl">
+            <Separator className="mb-8 bg-[color:var(--sf-card-border)]" />
+            <p className="text-[15px] leading-relaxed text-[color:var(--sf-muted)] sm:text-base">{store.description}</p>
+          </section>
+        </>
       ) : null}
 
       {settings.featuredSectionEnabled && featuredList.length > 0 ? (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Destacados
-          </h2>
-          <div className="mt-4">
-            <ProductGrid products={featuredList} settings={settings} onAdd={onAddToCart} />
-          </div>
+        <section className="space-y-6">
+          {sectionHeading('Selección', 'Destacados')}
+          <ProductGrid products={featuredList} settings={settings} onAdd={onAddToCart} />
         </section>
       ) : null}
 
       {settings.categoriesSectionEnabled ? (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Catálogo
-          </h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setTab('all')}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                tab === 'all'
-                  ? 'text-[color:var(--sf-btn-text)]'
-                  : 'border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)] text-[color:var(--sf-muted)] hover:bg-white/5'
-              }`}
-              style={tab === 'all' ? { backgroundColor: 'var(--sf-primary)' } : undefined}
-            >
-              Todos
-            </button>
-            {sortedCategories.map((c) => (
+        <section id="catalogo" className="scroll-mt-24 space-y-6">
+          <Separator className="bg-[color:var(--sf-card-border)]" />
+          {sectionHeading('Tienda', 'Catálogo')}
+          <div
+            role="tablist"
+            aria-label="Categorías del catálogo"
+            className="-mx-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="inline-flex min-h-11 w-max flex-nowrap gap-1 rounded-xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)]/60 p-1">
               <button
-                key={c.id}
                 type="button"
-                onClick={() => setTab(c.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  tab === c.id
-                    ? 'text-[color:var(--sf-btn-text)]'
-                    : 'border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)] text-[color:var(--sf-muted)] hover:bg-white/5'
-                }`}
-                style={tab === c.id ? { backgroundColor: 'var(--sf-primary)' } : undefined}
+                role="tab"
+                aria-selected={tab === 'all'}
+                id="sf-tab-all"
+                className={cn(
+                  tabBase,
+                  tab === 'all'
+                    ? 'bg-[color:var(--sf-primary)] text-[color:var(--sf-btn-text)] shadow-sm'
+                    : 'text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]',
+                )}
+                onClick={() => setTab('all')}
               >
-                {c.name}
+                Todos
               </button>
-            ))}
+              {sortedCategories.map((c) => {
+                const selected = tab === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    id={`sf-tab-${c.id}`}
+                    className={cn(
+                      tabBase,
+                      selected
+                        ? 'bg-[color:var(--sf-primary)] text-[color:var(--sf-btn-text)] shadow-sm'
+                        : 'text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]',
+                    )}
+                    onClick={() => setTab(c.id)}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="mt-6">
+          <div className="pt-2">
             <ProductGrid products={filteredMain} settings={settings} onAdd={onAddToCart} />
           </div>
           {filteredMain.length === 0 ? (
-            <p className="mt-6 text-sm text-[color:var(--sf-muted)]">No hay productos en esta vista.</p>
+            <p className="text-sm text-[color:var(--sf-muted)]">No hay productos en esta vista.</p>
           ) : null}
         </section>
       ) : (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Productos
-          </h2>
-          <div className="mt-6">
-            <ProductGrid products={products} settings={settings} onAdd={onAddToCart} />
-          </div>
+        <section id="catalogo" className="scroll-mt-24 space-y-6">
+          <Separator className="bg-[color:var(--sf-card-border)]" />
+          {sectionHeading('Tienda', 'Productos')}
+          <ProductGrid products={products} settings={settings} onAdd={onAddToCart} />
           {products.length === 0 ? (
-            <p className="mt-6 text-sm text-[color:var(--sf-muted)]">Esta tienda aún no publicó productos.</p>
+            <p className="text-sm text-[color:var(--sf-muted)]">Esta tienda aún no publicó productos.</p>
           ) : null}
         </section>
       )}

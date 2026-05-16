@@ -32,12 +32,14 @@ function CatalogContent() {
 
   if (store.error || !store.data) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-        <p className="text-lg text-[color:var(--sf-text)]">Tienda no encontrada</p>
-        <Link href="/" className="mt-4 text-sm font-medium text-[color:var(--sf-primary)] hover:underline">
-          Volver al inicio
-        </Link>
-      </div>
+      <StorefrontThemeShell settings={null}>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+          <p className="text-lg font-medium text-[color:var(--sf-text)]">Tienda no encontrada</p>
+          <Link href="/" className="mt-4 text-sm font-medium text-[color:var(--sf-primary)] hover:underline">
+            Volver al inicio
+          </Link>
+        </div>
+      </StorefrontThemeShell>
     );
   }
 
@@ -45,7 +47,7 @@ function CatalogContent() {
 
   return (
     <StorefrontThemeShell settings={s.settings}>
-      <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)]">
+      <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href={`/tienda/${slug}`}

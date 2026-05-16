@@ -71,7 +71,7 @@ export function StorefrontCartPanel({
       )}
     >
       <div className="flex items-center gap-2.5">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color:var(--sf-primary-soft)] text-[color:var(--sf-primary)] ring-1 ring-[color:var(--sf-card-border)]">
           <ShoppingBag className="size-4" aria-hidden />
         </div>
         <h2 className="text-lg font-semibold tracking-tight text-foreground">{heading}</h2>
@@ -80,7 +80,7 @@ export function StorefrontCartPanel({
       {items.length === 0 ? (
         <div
           className={cn(
-            'flex flex-col items-center rounded-2xl border border-border bg-muted/30 px-6 py-12 text-center',
+            'flex flex-col items-center rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg-accent)]/50 px-6 py-12 text-center',
           )}
         >
           <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-muted/80 text-muted-foreground ring-1 ring-border">
@@ -112,8 +112,8 @@ export function StorefrontCartPanel({
                 <li
                   key={i.productId}
                   className={cn(
-                    'rounded-2xl border border-border bg-card/80 p-3 shadow-sm',
-                    'motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-md',
+                    'rounded-2xl border border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] p-3 shadow-[var(--sf-shadow-sm)]',
+                    'motion-safe:transition-[box-shadow,transform] motion-safe:duration-200 hover:shadow-[var(--sf-shadow-md)]',
                   )}
                 >
                   <div className="flex gap-3">
@@ -270,7 +270,8 @@ export function StorefrontCartPanel({
               type="button"
               disabled={orderPending}
               onClick={onSubmit}
-              className="h-12 w-full rounded-full text-sm font-semibold shadow-md motion-safe:transition-transform motion-safe:active:scale-[0.99]"
+              className="h-12 w-full rounded-full border-0 text-sm font-semibold shadow-[var(--sf-shadow-sm)] motion-safe:transition-transform motion-safe:active:scale-[0.99]"
+              style={{ backgroundColor: 'var(--sf-btn)', color: 'var(--sf-btn-text)' }}
             >
               {orderPending ? 'Enviando…' : 'Enviar pedido'}
             </Button>

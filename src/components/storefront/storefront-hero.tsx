@@ -18,8 +18,6 @@ const rad = storefrontRadiusClass();
 export function StorefrontHero({ store, settings, slug }: Props) {
   const hasBanner = !!(settings.showBanner && settings.bannerUrl);
   const catalogHref = `/tienda/${slug}/catalogo`;
-  const heroDescription =
-    store.description && store.description.trim().length > 0 ? store.description.trim() : null;
 
   const logoBlock = (
     <>
@@ -32,7 +30,7 @@ export function StorefrontHero({ store, settings, slug }: Props) {
         />
       ) : (
         <div
-          className={`flex h-16 w-16 shrink-0 items-center justify-center bg-[color:var(--sf-primary)]/20 text-xl font-bold text-[color:var(--sf-primary)] shadow-lg md:h-20 md:w-24 md:text-2xl ${rad}`}
+          className={`flex h-16 w-16 shrink-0 items-center justify-center bg-[color:var(--sf-primary-soft)] text-xl font-bold text-[color:var(--sf-primary)] shadow-[var(--sf-shadow-sm)] md:h-20 md:w-24 md:text-2xl ${rad}`}
         >
           {store.name.slice(0, 1).toUpperCase()}
         </div>
@@ -43,10 +41,6 @@ export function StorefrontHero({ store, settings, slug }: Props) {
   const titleClass = hasBanner
     ? 'text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight'
     : 'text-3xl font-semibold tracking-tight text-[color:var(--sf-text)] sm:text-4xl lg:text-[2.75rem] lg:leading-tight';
-
-  const descClass = hasBanner
-    ? 'max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base'
-    : 'max-w-2xl text-[15px] leading-relaxed text-[color:var(--sf-muted)] sm:text-base';
 
   const ctas = (
     <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -70,7 +64,7 @@ export function StorefrontHero({ store, settings, slug }: Props) {
           rad,
           hasBanner
             ? 'border-white/35 text-white hover:bg-white/10'
-            : 'border-[color:var(--sf-card-border)] text-[color:var(--sf-text)] hover:bg-[color:var(--sf-product-card-bg)]',
+            : 'border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] text-[color:var(--sf-text)] hover:bg-[color:var(--sf-bg-accent)]',
         )}
       >
         Explorar en inicio
@@ -83,7 +77,7 @@ export function StorefrontHero({ store, settings, slug }: Props) {
             rad,
             hasBanner
               ? 'border-white/35 text-white hover:bg-white/10'
-              : 'border-[color:var(--sf-card-border)] text-[color:var(--sf-text)] hover:bg-[color:var(--sf-product-card-bg)]',
+              : 'border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] text-[color:var(--sf-text)] hover:bg-[color:var(--sf-bg-accent)]',
           )}
         >
           Contactar
@@ -110,7 +104,7 @@ export function StorefrontHero({ store, settings, slug }: Props) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={settings.bannerUrl!} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/25 motion-safe:transition-opacity"
+          className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20 motion-safe:transition-opacity"
           aria-hidden
         />
         <div
@@ -120,12 +114,7 @@ export function StorefrontHero({ store, settings, slug }: Props) {
             {logoBlock}
             <div className="min-w-0 space-y-3">
               <h1 className={titleClass}>{store.name}</h1>
-              {heroDescription ? (
-                <p className={`${descClass} line-clamp-4 md:line-clamp-none`}>{heroDescription}</p>
-              ) : (
-                <p className={`${descClass} italic opacity-80`}>Catálogo y pedidos en un solo lugar.</p>
-              )}
-              {store.phone && !heroDescription ? (
+              {store.phone ? (
                 <p className="text-sm text-white/75">
                   <span className="font-medium text-white/90">{store.phone}</span>
                 </p>
@@ -140,9 +129,9 @@ export function StorefrontHero({ store, settings, slug }: Props) {
   }
 
   return (
-    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)]">
+    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-xl">
       <nav
-        className="border-b border-[color:var(--sf-card-border)]/80 bg-[color:var(--sf-bg)]/40 backdrop-blur-md"
+        className="border-b border-[color:var(--sf-card-border)]/80 bg-[color:var(--sf-surface)]/70 backdrop-blur-md"
         aria-label="Navegación rápida"
       >
         <div className={`flex flex-wrap items-center justify-between gap-3 py-3 ${shellX}`}>
@@ -172,11 +161,6 @@ export function StorefrontHero({ store, settings, slug }: Props) {
             {logoBlock}
             <div className="min-w-0 space-y-4">
               <h1 className={titleClass}>{store.name}</h1>
-              {heroDescription ? (
-                <p className={`${descClass} line-clamp-4`}>{heroDescription}</p>
-              ) : (
-                <p className={`${descClass} italic opacity-90`}>Explorá el catálogo y armá tu pedido.</p>
-              )}
               {store.phone ? (
                 <p className="text-sm md:hidden">
                   <span className="text-[color:var(--sf-muted)]">Teléfono · </span>

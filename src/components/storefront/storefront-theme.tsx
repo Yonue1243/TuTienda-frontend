@@ -23,22 +23,37 @@ export function mergeStoreSettings(
   return { ...base, ...draft };
 }
 
-/** Variables CSS fijas para toda la tienda pública (sin personalización por comercio). */
+/** Variables CSS fijas — paleta cálida premium (tienda pública). */
 export function storefrontCssVars(): CSSProperties {
   return {
-    '--sf-primary': '#6366f1',
-    '--sf-secondary': '#818cf8',
-    '--sf-bg': '#030712',
-    '--sf-header-bg': '#030712',
-    '--sf-product-card-bg': '#0a0a0f',
-    '--sf-text': '#f4f4f5',
-    '--sf-muted': '#a1a1aa',
-    '--sf-btn': '#6366f1',
-    '--sf-btn-text': '#fafafa',
-    '--sf-card-border': 'rgba(244, 244, 245, 0.12)',
+    '--sf-bg': '#faf8f5',
+    '--sf-bg-accent': '#f3efe8',
+    '--sf-surface': '#ffffff',
+    '--sf-header-bg': 'rgba(255, 255, 255, 0.82)',
+    '--sf-product-card-bg': '#ffffff',
+    '--sf-primary': '#5b52e8',
+    '--sf-secondary': '#7c75f0',
+    '--sf-primary-soft': 'rgba(91, 82, 232, 0.1)',
+    '--sf-text': '#1c1917',
+    '--sf-muted': '#78716c',
+    '--sf-btn': '#5b52e8',
+    '--sf-btn-text': '#ffffff',
+    '--sf-card-border': 'rgba(28, 25, 23, 0.08)',
+    '--sf-shadow-sm': '0 1px 2px rgba(28, 25, 23, 0.04), 0 4px 12px rgba(28, 25, 23, 0.04)',
+    '--sf-shadow-md': '0 4px 6px rgba(28, 25, 23, 0.04), 0 12px 28px rgba(28, 25, 23, 0.08)',
+    '--sf-shadow-fab': '0 8px 24px rgba(91, 82, 232, 0.28), 0 2px 8px rgba(28, 25, 23, 0.08)',
   } as CSSProperties;
 }
 
 export function storefrontRadiusClass(): string {
   return 'rounded-2xl';
+}
+
+export function storefrontSectionClass(): string {
+  return 'space-y-10 md:space-y-12';
+}
+
+/** Fondo de página con profundidad sutil (gradiente cálido). */
+export function storefrontPageBackgroundClass(): string {
+  return 'min-h-screen bg-[color:var(--sf-bg)] text-[color:var(--sf-text)] [background-image:radial-gradient(ellipse_120%_80%_at_50%_-20%,var(--sf-bg-accent),transparent_55%),linear-gradient(180deg,var(--sf-bg)_0%,#f5f1eb_100%)]';
 }

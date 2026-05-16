@@ -11,7 +11,7 @@ const r = storefrontRadiusClass();
 
 type Props = {
   product: ProductDto;
-  variant?: 'carousel' | 'grid';
+  variant?: 'slider' | 'grid';
   onAdd?: () => void;
   className?: string;
 };
@@ -26,7 +26,7 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
   const outOfStock = product.stock === 0;
   const maxStock = product.stock;
   const atMaxStock = maxStock != null && qty >= maxStock;
-  const isCarousel = variant === 'carousel';
+  const isSlider = variant === 'slider';
 
   const handleFirstAdd = () => {
     if (outOfStock || !onAdd) return;
@@ -52,13 +52,13 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
   return (
     <article
       className={cn(
-        `flex h-full flex-col overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] shadow-sm ring-1 ring-black/[0.03] motion-safe:transition-[box-shadow,ring-color] motion-safe:duration-200 motion-safe:ease-out`,
-        'hover:shadow-md hover:ring-black/[0.05]',
-        isCarousel && 'w-[9.25rem] shrink-0 sm:w-[11.25rem]',
+        `flex h-full flex-col overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] shadow-[var(--sf-shadow-sm)] motion-safe:transition-[box-shadow,transform] motion-safe:duration-200 motion-safe:ease-out`,
+        'hover:-translate-y-0.5 hover:shadow-[var(--sf-shadow-md)]',
+        isSlider && 'w-full',
         className,
       )}
     >
-      <div className={cn('relative overflow-hidden bg-black/20', isCarousel ? 'aspect-square' : 'aspect-[4/3]')}>
+      <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
         {product.featured ? (
@@ -71,12 +71,12 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
           </div>
         ) : null}
       </div>
-      <div className={cn('flex flex-1 flex-col justify-between', isCarousel ? 'gap-2.5 p-3' : 'gap-3 p-3.5 sm:p-4')}>
+      <div className="flex flex-1 flex-col justify-between gap-3 p-3.5 sm:p-4">
         <div className="space-y-1">
           <h3
             className={cn(
               'font-semibold leading-snug tracking-tight text-[color:var(--sf-text)]',
-              isCarousel ? 'line-clamp-2 text-[13px]' : 'text-sm sm:text-[15px]',
+              'text-sm sm:text-[15px]',
             )}
           >
             {product.name}
@@ -85,7 +85,7 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
             <p
               className={cn(
                 'text-[color:var(--sf-muted)]',
-                isCarousel ? 'line-clamp-1 text-xs' : 'line-clamp-2 text-sm leading-relaxed',
+                'line-clamp-2 text-sm leading-relaxed',
               )}
             >
               {product.description}
@@ -95,13 +95,13 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
         <div
           className={cn(
             'flex items-end justify-between gap-2 border-t border-[color:var(--sf-card-border)]/80',
-            isCarousel ? 'pt-2.5' : 'pt-3',
+            'pt-3',
           )}
         >
           <p
             className={cn(
               'font-semibold tabular-nums text-[color:var(--sf-primary)]',
-              isCarousel ? 'text-sm' : 'text-base sm:text-lg',
+              'text-base sm:text-lg',
             )}
           >
             ${Number(product.price).toFixed(2)}
@@ -114,7 +114,6 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
                 disabled
                 className={cn(
                   'cursor-not-allowed rounded-full border border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] px-2.5 text-[10px] font-semibold text-[color:var(--sf-muted)] opacity-90',
-                  isCarousel && 'h-7 min-w-0 px-2',
                   r,
                 )}
               >
@@ -160,7 +159,7 @@ export function StorefrontProductCard({ product, variant = 'grid', onAdd, classN
                 onClick={handleFirstAdd}
                 className={cn(
                   'gap-1 rounded-full border-0 px-3 text-[11px] font-semibold shadow-sm motion-safe:active:scale-[0.97]',
-                  isCarousel ? 'h-8 min-w-0' : 'min-w-[5.5rem] px-4 text-xs',
+                  'min-w-[5.5rem] px-4 text-xs',
                   r,
                 )}
                 style={{

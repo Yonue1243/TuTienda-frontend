@@ -33,12 +33,17 @@ export default function PublicTiendaPage() {
 
   if (store.error || !store.data) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-6 text-center">
-        <p className="text-lg text-white">Tienda no encontrada</p>
-        <Link href="/" className="mt-4 text-indigo-300 hover:text-indigo-200">
-          Volver al inicio
-        </Link>
-      </div>
+      <StorefrontThemeShell settings={null}>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+          <p className="text-lg font-medium text-[color:var(--sf-text)]">Tienda no encontrada</p>
+          <Link
+            href="/"
+            className="mt-4 text-sm font-medium text-[color:var(--sf-primary)] hover:underline"
+          >
+            Volver al inicio
+          </Link>
+        </div>
+      </StorefrontThemeShell>
     );
   }
 

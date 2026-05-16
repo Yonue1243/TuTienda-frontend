@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { ProductDto } from '@/lib/types';
@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { storefrontCssVars } from '@/components/storefront/storefront-theme';
 
 type StorefrontShopContextValue = {
   slug: string;
@@ -146,12 +147,13 @@ export function StorefrontShopShell({ children }: { children: React.ReactNode })
           <button
             type="button"
             className={cn(
-              'fixed z-40 flex size-14 items-center justify-center rounded-2xl shadow-lg ring-2 ring-black/10',
+              'storefront-root fixed z-50 flex size-14 items-center justify-center rounded-2xl shadow-[var(--sf-shadow-fab)] ring-1 ring-[color:var(--sf-card-border)]',
               'bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]',
               'motion-safe:transition-transform motion-safe:duration-200 motion-safe:active:scale-[0.96]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sf-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--sf-bg)]',
             )}
             style={{
+              ...storefrontCssVars(),
               backgroundColor: 'var(--sf-btn)',
               color: 'var(--sf-btn-text)',
             }}
@@ -161,16 +163,16 @@ export function StorefrontShopShell({ children }: { children: React.ReactNode })
                 : 'Abrir carrito'
             }
           >
-            <ShoppingBag className="size-6 shrink-0 opacity-95" aria-hidden />
+            <ShoppingCart className="size-6 shrink-0" strokeWidth={2.25} aria-hidden />
             {totalUnits > 0 ? (
               reduceMotion ? (
-                <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-text)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-bg)] ring-2 ring-[color:var(--sf-btn)]">
+                <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-surface)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-primary)] ring-2 ring-[color:var(--sf-btn)]">
                   {totalUnits > 99 ? '99+' : totalUnits}
                 </span>
               ) : (
                 <motion.span
                   key={cartBumpKey}
-                  className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-text)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-bg)] ring-2 ring-[color:var(--sf-btn)]"
+                  className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-[color:var(--sf-surface)] px-1 text-[10px] font-bold tabular-nums leading-none text-[color:var(--sf-primary)] ring-2 ring-[color:var(--sf-btn)]"
                   initial={{ scale: 0.88 }}
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 0.38, ease: 'easeOut' }}
@@ -183,10 +185,11 @@ export function StorefrontShopShell({ children }: { children: React.ReactNode })
         </SheetTrigger>
         <SheetContent
           side="right"
-          className="flex h-full w-full max-w-md flex-col border-border bg-card p-0 text-card-foreground sm:max-w-sm"
+          style={storefrontCssVars()}
+          className="storefront-root flex h-full w-full max-w-md flex-col border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] p-0 text-[color:var(--sf-text)] shadow-[var(--sf-shadow-md)] sm:max-w-sm"
         >
-          <SheetHeader className="shrink-0 border-b border-border px-5 pb-4 pt-[max(1.5rem,env(safe-area-inset-top))] text-left">
-            <SheetTitle className="font-semibold text-foreground">Tu pedido</SheetTitle>
+          <SheetHeader className="shrink-0 border-b border-[color:var(--sf-card-border)] px-5 pb-4 pt-[max(1.5rem,env(safe-area-inset-top))] text-left">
+            <SheetTitle className="font-semibold text-[color:var(--sf-text)]">Tu pedido</SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
             <StorefrontCartPanel

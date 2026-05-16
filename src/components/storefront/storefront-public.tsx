@@ -7,8 +7,12 @@ import type { CarouselSlideDto, ProductDto, StorePublic, StoreSettingsDto } from
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { StorefrontEmblaCarousel } from './storefront-embla';
-import { storefrontCssVars, storefrontRadiusClass } from './storefront-theme';
-import { CategoryProductCarousel } from './category-product-carousel';
+import {
+  storefrontCssVars,
+  storefrontPageBackgroundClass,
+  storefrontRadiusClass,
+} from './storefront-theme';
+import { CategoryProductSlider } from './category-product-slider';
 
 export { StorefrontHero } from './storefront-hero';
 export { StorefrontHero as StorefrontPublicHeader } from './storefront-hero';
@@ -25,7 +29,10 @@ export function StorefrontThemeShell({
   void settings;
   void draft;
   return (
-    <div className="min-h-screen bg-[color:var(--sf-bg)] text-[color:var(--sf-text)]" style={storefrontCssVars()}>
+    <div
+      className={cn('storefront-root text-[15px] leading-relaxed antialiased', storefrontPageBackgroundClass())}
+      style={storefrontCssVars()}
+    >
       {children}
     </div>
   );
@@ -34,7 +41,7 @@ export function StorefrontThemeShell({
 function sectionHeading(title: string, subtitle?: string) {
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--sf-muted)]">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--sf-muted)]">{title}</p>
       {subtitle ? (
         <h2 className="text-xl font-semibold tracking-tight text-[color:var(--sf-text)] sm:text-2xl">{subtitle}</h2>
       ) : null}
@@ -95,7 +102,6 @@ export function StorefrontPublicSections({
 
   const showCarousel = slides.length > 0;
   const hasCategories = sortedCategories.length > 0;
-  const showDescriptionBlock = !!(store.description && store.description.trim());
   const catalogHref = `/tienda/${slug}/catalogo`;
 
   return (
@@ -103,21 +109,14 @@ export function StorefrontPublicSections({
       {showCarousel ? (
         <StorefrontEmblaCarousel
           slides={slides}
-          className={`overflow-hidden shadow-md ring-1 ring-black/[0.04] ${r} border border-[color:var(--sf-card-border)]`}
+          className={`overflow-hidden border border-[color:var(--sf-card-border)] shadow-[var(--sf-shadow-md)] ${r}`}
         />
-      ) : null}
-
-      {showDescriptionBlock ? (
-        <section className="max-w-3xl">
-          <Separator className="mb-8 bg-[color:var(--sf-card-border)]" />
-          <p className="text-[15px] leading-relaxed text-[color:var(--sf-muted)] sm:text-base">{store.description}</p>
-        </section>
       ) : null}
 
       {featuredList.length > 0 ? (
         <section className="space-y-6">
           {sectionHeading('Selección', 'Destacados')}
-          <CategoryProductCarousel
+          <CategoryProductSlider
             title="Destacados"
             products={featuredList}
             viewAllHref={catalogHref}
@@ -126,7 +125,10 @@ export function StorefrontPublicSections({
         </section>
       ) : null}
 
-      <section id="catalogo" className="scroll-mt-28 space-y-10 md:scroll-mt-32 md:space-y-12">
+      <section
+        id="catalogo"
+        className="scroll-mt-28 space-y-10 rounded-3xl border border-[color:var(--sf-card-border)]/60 bg-[color:var(--sf-surface)]/50 px-4 py-8 shadow-[var(--sf-shadow-sm)] backdrop-blur-sm sm:px-6 md:scroll-mt-32 md:space-y-12 md:px-8 md:py-10"
+      >
         <Separator className="bg-[color:var(--sf-card-border)]" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           {sectionHeading('Tienda', 'Catálogo')}
@@ -145,7 +147,7 @@ export function StorefrontPublicSections({
               const catProducts = productsByCategory.map.get(c.id) ?? [];
               if (catProducts.length === 0) return null;
               return (
-                <CategoryProductCarousel
+                <CategoryProductSlider
                   key={c.id}
                   title={c.name}
                   products={catProducts}
@@ -155,7 +157,7 @@ export function StorefrontPublicSections({
               );
             })}
             {productsByCategory.uncategorized.length > 0 ? (
-              <CategoryProductCarousel
+              <CategoryProductSlider
                 title="Otros"
                 products={productsByCategory.uncategorized}
                 viewAllHref={catalogHref}
@@ -164,7 +166,7 @@ export function StorefrontPublicSections({
             ) : null}
           </div>
         ) : mainProducts.length > 0 ? (
-          <CategoryProductCarousel
+          <CategoryProductSlider
             title="Productos"
             products={mainProducts}
             viewAllHref={catalogHref}

@@ -135,3 +135,24 @@ body {
   opacity: 0.55;
   color: #a1a1aa;
 }
+
+/* Tienda pública: remapea shadcn dentro del subtree (y en portales con style inline) */
+.storefront-root {
+  --background: var(--sf-bg);
+  --foreground: var(--sf-text);
+  --card: var(--sf-surface);
+  --card-foreground: var(--sf-text);
+  --popover: var(--sf-surface);
+  --popover-foreground: var(--sf-text);
+  --primary: var(--sf-primary);
+  --primary-foreground: var(--sf-btn-text);
+  --secondary: var(--sf-bg-accent);
+  --secondary-foreground: var(--sf-text);
+  --muted: var(--sf-bg-accent);
+  --muted-foreground: var(--sf-muted);
+  --accent: var(--sf-primary-soft);
+  --accent-foreground: var(--sf-text);
+  --border: var(--sf-card-border);
+  --input: var(--sf-card-border);
+  --ring: var(--sf-primary);
+}

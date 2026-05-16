@@ -91,7 +91,7 @@ export function StorefrontCatalog({ store, slug, onAddToCart }: Props) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar productos…"
-            className="h-10 border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] pl-9 text-sm"
+            className="h-10 border-[color:var(--sf-card-border)] bg-[color:var(--sf-surface)] pl-9 text-sm shadow-[var(--sf-shadow-sm)]"
             aria-label="Buscar en el catálogo"
           />
         </div>

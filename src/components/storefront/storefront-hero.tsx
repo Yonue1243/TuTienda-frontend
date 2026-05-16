@@ -8,14 +8,16 @@ import { storefrontRadiusClass } from './storefront-theme';
 type Props = {
   store: StorePublic;
   settings: StoreSettingsDto;
+  slug: string;
 };
 
 const shellX = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8';
 const rad = storefrontRadiusClass();
 
 /** Hero premium: banner opcional full-bleed o bloque limpio; CTAs #catalogo y tel. */
-export function StorefrontHero({ store, settings }: Props) {
+export function StorefrontHero({ store, settings, slug }: Props) {
   const hasBanner = !!(settings.showBanner && settings.bannerUrl);
+  const catalogHref = `/tienda/${slug}/catalogo`;
   const heroDescription =
     store.description && store.description.trim().length > 0 ? store.description.trim() : null;
 
@@ -48,8 +50,8 @@ export function StorefrontHero({ store, settings }: Props) {
 
   const ctas = (
     <div className="mt-7 flex flex-wrap items-center gap-3">
-      <a
-        href="#catalogo"
+      <Link
+        href={catalogHref}
         className={cn(
           'inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold shadow-md motion-safe:transition-opacity motion-safe:duration-200 hover:opacity-95',
           rad,
@@ -59,7 +61,19 @@ export function StorefrontHero({ store, settings }: Props) {
           color: 'var(--sf-btn-text)',
         }}
       >
-        Ver catálogo
+        Ver catálogo completo
+      </Link>
+      <a
+        href="#catalogo"
+        className={cn(
+          'inline-flex items-center justify-center border px-6 py-2.5 text-sm font-semibold motion-safe:transition-colors motion-safe:duration-200',
+          rad,
+          hasBanner
+            ? 'border-white/35 text-white hover:bg-white/10'
+            : 'border-[color:var(--sf-card-border)] text-[color:var(--sf-text)] hover:bg-[color:var(--sf-product-card-bg)]',
+        )}
+      >
+        Explorar en inicio
       </a>
       {store.phone ? (
         <a
@@ -132,12 +146,12 @@ export function StorefrontHero({ store, settings }: Props) {
         aria-label="Navegación rápida"
       >
         <div className={`flex flex-wrap items-center justify-between gap-3 py-3 ${shellX}`}>
-          <a
-            href="#catalogo"
+          <Link
+            href={catalogHref}
             className="text-sm font-medium text-[color:var(--sf-muted)] motion-safe:transition-colors hover:text-[color:var(--sf-text)]"
           >
             Catálogo
-          </a>
+          </Link>
           <div className="flex items-center gap-4">
             {store.phone ? (
               <a

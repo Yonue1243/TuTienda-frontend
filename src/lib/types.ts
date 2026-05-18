@@ -14,23 +14,8 @@ export type AuthResponse = {
 export type StoreSettingsDto = {
   id: string;
   storeId: string;
-  primaryColor: string;
-  secondaryColor: string;
-  backgroundColor: string;
-  headerBackgroundColor: string;
-  productCardBackgroundColor: string;
-  textColor: string;
-  buttonColor: string;
-  buttonTextColor: string;
   showBanner: boolean;
   bannerUrl: string | null;
-  carouselEnabled: boolean;
-  categoriesSectionEnabled: boolean;
-  featuredSectionEnabled: boolean;
-  descriptionSectionEnabled: boolean;
-  layoutStyle: string;
-  cardStyle: string;
-  cornerRadius: string;
   createdAt: string;
   updatedAt: string;
 };

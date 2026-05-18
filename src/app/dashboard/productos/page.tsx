@@ -1,13 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Package, Pencil, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { ProductDto, StorePublic } from '@/lib/types';
 import { AxiosError } from 'axios';
 import { ImageDropzone } from '@/components/forms/ImageDropzone';
 import { extensionFromFileName } from '@/lib/storage-upload';
+import { PageHeader } from '@/components/layout/page-header';
+import { DashboardEmptyState } from '@/components/dashboard/empty-state';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type CategoryRow = { id: string; name: string };
 
@@ -49,6 +68,38 @@ export default function ProductosPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [newProductOpen, setNewProductOpen] = useState(false);
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterVisible, setFilterVisible] = useState<'all' | 'visible' | 'hidden'>('all');
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eName, setEName] = useState('');
+  const [ePrice, setEPrice] = useState('');
+  const [eDescription, setEDescription] = useState('');
+  const [eCategoryId, setECategoryId] = useState('');
+  const [eStock, setEStock] = useState('');
+  const [eImageUrl, setEImageUrl] = useState('');
+  const [eVisible, setEVisible] = useState(true);
+  const [editMsg, setEditMsg] = useState<string | null>(null);
+  const [editImageError, setEditImageError] = useState<string | null>(null);
+
+  function resetCreateForm() {
+    setName('');
+    setPrice('');
+    setDescription('');
+    setCategoryId('');
+    setStock('');
+    setImageUrl('');
+    setMsg(null);
+    setImageError(null);
+  }
+
+  function closeNewProduct() {
+    setNewProductOpen(false);
+    resetCreateForm();
+  }
 
   const createMu = useMutation({
     mutationFn: async () => {
@@ -65,15 +116,8 @@ export default function ProductosPage() {
       return data;
     },
     onSuccess: async () => {
-      setMsg('Producto creado.');
-      setName('');
-      setPrice('');
-      setDescription('');
-      setCategoryId('');
-      setStock('');
-      setImageUrl('');
-      setImageError(null);
       await qc.invalidateQueries({ queryKey: ['products'] });
+      closeNewProduct();
     },
     onError: (e: unknown) => {
       const ax = e as AxiosError<{ message?: string | string[] }>;
@@ -91,6 +135,76 @@ export default function ProductosPage() {
     },
   });
 
+  const updateMu = useMutation({
+    mutationFn: async () => {
+      if (!editId) throw new Error('Sin producto');
+      const trimmedImg = eImageUrl.trim();
+      if (!trimmedImg) {
+        throw new Error('IMAGE_REQUIRED');
+      }
+      const desc = eDescription.trim();
+      const payload: Record<string, unknown> = {
+        name: eName.trim(),
+        price: Number(ePrice),
+        imageUrl: trimmedImg,
+        visible: eVisible,
+        description: desc === '' ? null : desc,
+        categoryId: eCategoryId ? eCategoryId : null,
+        stock: eStock === '' ? null : Number(eStock),
+      };
+      const { data } = await api.patch<ProductDto>(`/products/${editId}`, payload);
+      return data;
+    },
+    onSuccess: async () => {
+      setEditMsg(null);
+      setEditImageError(null);
+      await qc.invalidateQueries({ queryKey: ['products'] });
+      closeEdit();
+    },
+    onError: (e: unknown) => {
+      const ax = e as AxiosError<{ message?: string | string[] }>;
+      if (e instanceof Error && e.message === 'IMAGE_REQUIRED') {
+        setEditImageError('La imagen del producto es obligatoria.');
+        setEditMsg(null);
+        return;
+      }
+      const m = ax.response?.data?.message;
+      setEditMsg(Array.isArray(m) ? m.join(', ') : m ?? 'Error al guardar');
+    },
+  });
+
+  function openEdit(p: ProductDto) {
+    setEditId(p.id);
+    setEName(p.name);
+    setEPrice(String(Number(p.price)));
+    setEDescription(p.description ?? '');
+    setECategoryId(p.categoryId ?? '');
+    setEStock(p.stock != null ? String(p.stock) : '');
+    setEImageUrl(p.imageUrl);
+    setEVisible(p.visible);
+    setEditMsg(null);
+    setEditImageError(null);
+    setEditOpen(true);
+  }
+
+  function closeEdit() {
+    setEditOpen(false);
+    setEditId(null);
+    setEditMsg(null);
+    setEditImageError(null);
+  }
+
+  function submitEdit(e: React.FormEvent) {
+    e.preventDefault();
+    setEditMsg(null);
+    setEditImageError(null);
+    if (!eImageUrl.trim()) {
+      setEditImageError('Subí o mantené una imagen del producto.');
+      return;
+    }
+    updateMu.mutate();
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
@@ -104,28 +218,57 @@ export default function ProductosPage() {
 
   const store = storeQ.data;
   const pending = createMu.isPending;
+  const editPending = updateMu.isPending;
+
+  const totalCount = products.data?.length ?? 0;
+  const filteredProducts = useMemo(() => {
+    const list = products.data ?? [];
+    const q = filterSearch.trim().toLowerCase();
+    return list.filter((p) => {
+      if (q) {
+        const inName = p.name.toLowerCase().includes(q);
+        const inDesc = (p.description ?? '').toLowerCase().includes(q);
+        if (!inName && !inDesc) return false;
+      }
+      if (filterCategory && p.categoryId !== filterCategory) return false;
+      if (filterVisible === 'visible' && !p.visible) return false;
+      if (filterVisible === 'hidden' && p.visible) return false;
+      return true;
+    });
+  }, [products.data, filterSearch, filterCategory, filterVisible]);
+
+  function clearFilters() {
+    setFilterSearch('');
+    setFilterCategory('');
+    setFilterVisible('all');
+  }
 
   if (storeQ.isLoading) {
     return (
-      <div className="mx-auto max-w-5xl animate-pulse space-y-6">
-        <div className="h-8 w-56 rounded-lg bg-zinc-800" />
-        <div className="h-64 rounded-3xl bg-zinc-900/60 ring-1 ring-zinc-800" />
+      <div className="mx-auto max-w-5xl space-y-10">
+        <div className="space-y-3 border-b border-white/[0.06] pb-8">
+          <Skeleton className="h-9 w-56 bg-white/[0.06]" />
+          <Skeleton className="h-4 w-full max-w-lg bg-white/[0.06]" />
+        </div>
+        <Skeleton className="h-96 rounded-xl bg-white/[0.06]" />
+        <Skeleton className="h-64 rounded-xl bg-white/[0.06]" />
       </div>
     );
   }
 
   if (storeQ.error || !store) {
     return (
-      <div className="mx-auto max-w-lg rounded-3xl border border-amber-500/25 bg-amber-500/10 p-8 text-center">
-        <p className="text-sm text-amber-100">
-          Primero creá tu tienda para cargar productos.
-        </p>
-        <Link
-          href="/dashboard/tienda"
-          className="mt-4 inline-flex rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-zinc-950"
-        >
-          Ir a Mi tienda
-        </Link>
+      <div className="mx-auto max-w-lg space-y-8">
+        <PageHeader title="Productos" description="Necesitás una tienda para gestionar el catálogo." />
+        <Alert className="border-amber-500/30 bg-amber-500/10">
+          <AlertTitle>Crear tienda</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            Primero creá tu tienda para cargar productos.
+            <Button size="sm" className="w-fit rounded-full shadow-none" asChild>
+              <Link href="/dashboard/tienda">Ir a Mi tienda</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -136,84 +279,65 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-12 pb-16">
-      <nav className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-        <Link href="/dashboard" className="hover:text-zinc-300">
-          Panel
-        </Link>
-        <span aria-hidden>/</span>
-        <span className="text-zinc-300">Productos</span>
-      </nav>
+    <div className="mx-auto max-w-5xl space-y-8 pb-16">
+      <PageHeader
+        title="Productos"
+        description="Gestioná el catálogo que ven tus clientes. Cada producto necesita una imagen; las fotos se guardan en Supabase Storage."
+        actions={
+          <Button
+            type="button"
+            className="rounded-full shadow-none"
+            onClick={() => {
+              resetCreateForm();
+              setNewProductOpen(true);
+            }}
+          >
+            <Plus className="mr-2 size-4" aria-hidden />
+            Nuevo producto
+          </Button>
+        }
+      />
 
-      <header className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300/90">Catálogo</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">Productos</h1>
-        <p className="max-w-2xl text-sm text-zinc-400">
-          Cada producto necesita una imagen visible en tu tienda pública. Las fotos se guardan en
-          Supabase Storage.
-        </p>
-      </header>
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-900/35 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-        <div className="mb-8 border-b border-zinc-800 pb-5">
-          <h2 className="text-lg font-semibold text-white">Nuevo producto</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Completá los datos y subí la foto antes de guardar.
-          </p>
-        </div>
-
-        <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
-          <div className="lg:col-span-2">
-            <ImageDropzone
-              label="Imagen del producto"
-              bucket="product-images"
-              buildPath={buildProductPath}
-              value={imageUrl}
-              onChange={(url) => {
-                setImageUrl(url);
-                setImageError(null);
-              }}
-              disabled={pending}
-              required
-              hint="Obligatorio · JPG, PNG, WEBP o GIF · máx. 5 MB"
-            />
-            {imageError ? (
-              <p className="mt-2 text-xs text-rose-300">{imageError}</p>
-            ) : null}
+      <section className="space-y-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-1 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Filtros del catálogo</p>
+            <p className="text-sm tabular-nums text-zinc-400">
+              {products.isLoading
+                ? 'Cargando…'
+                : filterSearch.trim() || filterCategory || filterVisible !== 'all'
+                  ? `${filteredProducts.length} de ${totalCount} producto${totalCount === 1 ? '' : 's'}`
+                  : `${totalCount} producto${totalCount === 1 ? '' : 's'}`}
+            </p>
           </div>
 
-          <div className="space-y-5 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
-            <div>
-              <label className="text-xs font-medium text-zinc-400">Nombre</label>
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ej: Café en grano 250 g"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
+          <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12 md:gap-x-4 md:gap-y-4">
+            <div className="space-y-1.5 md:col-span-5 lg:col-span-6">
+              <Label htmlFor="filter-search" className="text-xs font-medium text-zinc-500">
+                Buscar
+              </Label>
+              <Input
+                id="filter-search"
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                placeholder="Escribí para filtrar…"
+                className="h-9 w-full min-w-0 border-white/[0.08] bg-zinc-950"
+                disabled={products.isLoading}
+                autoComplete="off"
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-400">Precio</label>
-              <input
-                required
-                type="number"
-                min={0}
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-400">Categoría</label>
+            <div className="space-y-1.5 md:col-span-3 lg:col-span-3">
+              <Label htmlFor="filter-cat" className="text-xs font-medium text-zinc-500">
+                Categoría
+              </Label>
               <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none ring-indigo-500/30 focus:border-indigo-500/40 focus:ring-2"
+                id="filter-cat"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                disabled={products.isLoading}
+                className="flex h-9 w-full rounded-md border border-white/[0.08] bg-zinc-950 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="">Sin categoría</option>
+                <option value="">Todas</option>
                 {(categories.data ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -221,133 +345,394 @@ export default function ProductosPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-400">Stock (opcional)</label>
-              <input
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                placeholder="—"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
-              />
+            <div className="space-y-1.5 md:col-span-4 lg:col-span-3">
+              <Label htmlFor="filter-vis" className="text-xs font-medium text-zinc-500">
+                Visibilidad
+              </Label>
+              <select
+                id="filter-vis"
+                value={filterVisible}
+                onChange={(e) => setFilterVisible(e.target.value as 'all' | 'visible' | 'hidden')}
+                disabled={products.isLoading}
+                className="flex h-9 w-full rounded-md border border-white/[0.08] bg-zinc-950 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="all">Todos</option>
+                <option value="visible">Visibles</option>
+                <option value="hidden">Ocultos</option>
+              </select>
             </div>
-            <div className="lg:col-span-2">
-              <label className="text-xs font-medium text-zinc-400">Descripción</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                placeholder="Ingredientes, tamaño, tiempos de envío…"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
-              />
-            </div>
-          </div>
-
-          {msg ? (
-            <p className="lg:col-span-2 text-sm text-indigo-200">{msg}</p>
-          ) : null}
-
-          <div className="lg:col-span-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-2xl bg-indigo-500 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition hover:bg-indigo-400 disabled:opacity-60"
-            >
-              {pending ? 'Creando…' : 'Publicar producto'}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Tu catálogo</h2>
-            <p className="text-sm text-zinc-500">
-              {(products.data ?? []).length} producto
-              {(products.data ?? []).length === 1 ? '' : 's'}
-            </p>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/40 shadow-inner shadow-black/20">
+        <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/70 text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-medium uppercase tracking-wide text-zinc-500">
               <tr>
-                <th className="px-5 py-4">Producto</th>
-                <th className="px-5 py-4">Precio</th>
-                <th className="hidden px-5 py-4 sm:table-cell">Stock</th>
-                <th className="hidden px-5 py-4 md:table-cell">Visible</th>
-                <th className="px-5 py-4 text-right">Acciones</th>
+                <th className="px-4 py-3 sm:px-5">Producto</th>
+                <th className="px-4 py-3 sm:px-5">Precio</th>
+                <th className="hidden px-5 py-3 sm:table-cell">Stock</th>
+                <th className="hidden px-5 py-3 md:table-cell">Visible</th>
+                <th className="px-4 py-3 text-right sm:px-5">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/80">
-              {products.isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-zinc-500">
-                    Cargando…
-                  </td>
-                </tr>
-              ) : (
-                (products.data ?? []).map((p) => (
-                  <tr key={p.id} className="hover:bg-zinc-900/40">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white">{p.name}</p>
-                          {p.category?.name ? (
-                            <p className="text-xs text-zinc-500">{p.category.name}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 tabular-nums text-zinc-200">
-                      ${Number(p.price).toFixed(2)}
-                    </td>
-                    <td className="hidden px-5 py-4 text-zinc-400 sm:table-cell">
-                      {p.stock ?? '—'}
-                    </td>
-                    <td className="hidden px-5 py-4 md:table-cell">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          p.visible
-                            ? 'bg-emerald-500/15 text-emerald-200'
-                            : 'bg-zinc-700/40 text-zinc-400'
-                        }`}
-                      >
-                        {p.visible ? 'Sí' : 'No'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm('¿Eliminar este producto?')) {
-                            deleteMu.mutate(p.id);
-                          }
-                        }}
-                        className="text-xs font-medium text-rose-300 hover:text-rose-200"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+            <tbody className="divide-y divide-white/[0.06]">
+              {products.isLoading
+                ? [1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i}>
+                      <td colSpan={5} className="px-4 py-3 sm:px-5">
+                        <Skeleton className="h-12 w-full bg-white/[0.06]" />
+                      </td>
+                    </tr>
+                  ))
+                : totalCount === 0
+                  ? [
+                      <tr key="empty">
+                        <td colSpan={5} className="p-0">
+                          <DashboardEmptyState
+                            icon={Package}
+                            title="Catálogo vacío"
+                            description="Creá tu primer producto con el botón Nuevo producto."
+                          />
+                        </td>
+                      </tr>,
+                    ]
+                  : filteredProducts.length === 0
+                    ? [
+                        <tr key="nofilter">
+                          <td colSpan={5} className="px-6 py-12 text-center">
+                            <p className="text-sm text-zinc-400">Ningún producto coincide con los filtros.</p>
+                            <Button type="button" variant="link" className="mt-2 text-indigo-400" onClick={clearFilters}>
+                              Limpiar filtros
+                            </Button>
+                          </td>
+                        </tr>,
+                      ]
+                    : filteredProducts.map((p) => (
+                        <tr key={p.id} className="transition-colors hover:bg-white/[0.02]">
+                          <td className="px-4 py-4 sm:px-5">
+                            <div className="flex items-center gap-3">
+                              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-zinc-900">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-white">{p.name}</p>
+                                {p.category?.name ? (
+                                  <p className="text-xs text-zinc-500">{p.category.name}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 tabular-nums text-zinc-200 sm:px-5">
+                            ${Number(p.price).toFixed(2)}
+                          </td>
+                          <td className="hidden px-5 py-4 text-zinc-400 sm:table-cell">{p.stock ?? '—'}</td>
+                          <td className="hidden px-5 py-4 md:table-cell">
+                            {p.visible ? (
+                              <Badge variant="success">Visible</Badge>
+                            ) : (
+                              <Badge variant="outline">Oculto</Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-right sm:px-5">
+                            <div className="flex flex-wrap items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+                                onClick={() => openEdit(p)}
+                              >
+                                <Pencil className="mr-1 size-3.5 opacity-80" aria-hidden />
+                                Editar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                                onClick={() => {
+                                  if (confirm('¿Eliminar este producto?')) {
+                                    deleteMu.mutate(p.id);
+                                  }
+                                }}
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
             </tbody>
           </table>
-          {!products.isLoading && (products.data ?? []).length === 0 ? (
-            <p className="px-5 py-14 text-center text-sm text-zinc-500">
-              Todavía no hay productos. Usá el formulario de arriba para el primero.
-            </p>
-          ) : null}
         </div>
       </section>
+
+      <Dialog
+        open={newProductOpen}
+        onOpenChange={(open) => {
+          if (!open && !pending) closeNewProduct();
+        }}
+      >
+        <DialogContent
+          className="max-h-[min(92vh,900px)] w-[calc(100vw-1.5rem)] overflow-y-auto border-white/[0.08] bg-zinc-950 text-white sm:max-w-3xl lg:max-w-4xl"
+          onPointerDownOutside={(ev) => {
+            if (pending) ev.preventDefault();
+          }}
+          onEscapeKeyDown={(ev) => {
+            if (pending) ev.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">Nuevo producto</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Completá los datos y subí la foto antes de publicar.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submit} className="grid gap-5 pt-1">
+            <div>
+              <ImageDropzone
+                label="Imagen del producto"
+                bucket="product-images"
+                buildPath={buildProductPath}
+                value={imageUrl}
+                onChange={(url) => {
+                  setImageUrl(url);
+                  setImageError(null);
+                }}
+                disabled={pending}
+                required
+                hint="Obligatorio · JPG, PNG, WEBP o GIF · máx. 5 MB"
+              />
+              {imageError ? <p className="mt-2 text-xs text-rose-400">{imageError}</p> : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="p-name">Nombre</Label>
+                <Input
+                  id="p-name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej: Café en grano 250 g"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p-price">Precio</Label>
+                <Input
+                  id="p-price"
+                  required
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p-cat">Categoría</Label>
+                <select
+                  id="p-cat"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  disabled={pending}
+                  className="flex h-9 w-full rounded-md border border-white/[0.08] bg-zinc-900 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Sin categoría</option>
+                  {(categories.data ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p-stock">Stock (opcional)</Label>
+                <Input
+                  id="p-stock"
+                  type="number"
+                  min={0}
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  placeholder="—"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="p-desc">Descripción</Label>
+                <Textarea
+                  id="p-desc"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Ingredientes, tamaño, tiempos de envío…"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={pending}
+                />
+              </div>
+            </div>
+
+            {msg ? (
+              <Alert variant="destructive" className="border-white/[0.08]">
+                <AlertTitle>No se pudo guardar</AlertTitle>
+                <AlertDescription>{msg}</AlertDescription>
+              </Alert>
+            ) : null}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" disabled={pending} onClick={() => closeNewProduct()}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={pending} className="shadow-none">
+                {pending ? 'Creando…' : 'Publicar producto'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (!open && !editPending) closeEdit();
+        }}
+      >
+        <DialogContent
+          className="max-h-[min(92vh,900px)] w-[calc(100vw-1.5rem)] overflow-y-auto border-white/[0.08] bg-zinc-950 text-white sm:max-w-3xl lg:max-w-4xl"
+          onPointerDownOutside={(ev) => {
+            if (editPending) ev.preventDefault();
+          }}
+          onEscapeKeyDown={(ev) => {
+            if (editPending) ev.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">Editar producto</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Cambiá los datos y guardá. La imagen sigue siendo obligatoria en el catálogo público.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitEdit} className="grid gap-5 pt-1">
+            <div>
+              <ImageDropzone
+                label="Imagen del producto"
+                bucket="product-images"
+                buildPath={buildProductPath}
+                value={eImageUrl}
+                onChange={(url) => {
+                  setEImageUrl(url);
+                  setEditImageError(null);
+                }}
+                disabled={editPending}
+                required
+                hint="Obligatorio · JPG, PNG, WEBP o GIF · máx. 5 MB"
+              />
+              {editImageError ? <p className="mt-2 text-xs text-rose-400">{editImageError}</p> : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="e-name">Nombre</Label>
+                <Input
+                  id="e-name"
+                  required
+                  value={eName}
+                  onChange={(ev) => setEName(ev.target.value)}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-price">Precio</Label>
+                <Input
+                  id="e-price"
+                  required
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={ePrice}
+                  onChange={(ev) => setEPrice(ev.target.value)}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-cat">Categoría</Label>
+                <select
+                  id="e-cat"
+                  value={eCategoryId}
+                  onChange={(ev) => setECategoryId(ev.target.value)}
+                  disabled={editPending}
+                  className="flex h-9 w-full rounded-md border border-white/[0.08] bg-zinc-900 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Sin categoría</option>
+                  {(categories.data ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e-stock">Stock (opcional)</Label>
+                <Input
+                  id="e-stock"
+                  type="number"
+                  min={0}
+                  value={eStock}
+                  onChange={(ev) => setEStock(ev.target.value)}
+                  placeholder="Vacío = sin límite"
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-zinc-900/50 px-3 py-2.5 sm:col-span-2">
+                <div>
+                  <Label htmlFor="e-visible" className="text-sm font-medium text-white">
+                    Visible en la tienda
+                  </Label>
+                  <p className="text-xs text-zinc-500">Si está desactivado, no aparece en el catálogo público.</p>
+                </div>
+                <Switch id="e-visible" checked={eVisible} onCheckedChange={setEVisible} disabled={editPending} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="e-desc">Descripción</Label>
+                <Textarea
+                  id="e-desc"
+                  value={eDescription}
+                  onChange={(ev) => setEDescription(ev.target.value)}
+                  rows={3}
+                  className="border-white/[0.08] bg-zinc-900"
+                  disabled={editPending}
+                />
+              </div>
+            </div>
+
+            {editMsg ? (
+              <Alert variant="destructive" className="border-white/[0.08]">
+                <AlertTitle>No se pudo guardar</AlertTitle>
+                <AlertDescription>{editMsg}</AlertDescription>
+              </Alert>
+            ) : null}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" disabled={editPending} onClick={() => closeEdit()}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={editPending} className="shadow-none">
+                {editPending ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

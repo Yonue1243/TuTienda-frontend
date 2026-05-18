@@ -1,11 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import type { CarouselSlideDto, ProductDto, StorePublic, StoreSettingsDto } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { StorefrontEmblaCarousel } from './storefront-embla';
-import { mergeStoreSettings, radiusClass, storefrontCssVars } from './storefront-theme';
+import {
+  storefrontCssVars,
+  storefrontPageBackgroundClass,
+  storefrontRadiusClass,
+} from './storefront-theme';
+import { CategoryProductSlider } from './category-product-slider';
+
+export { StorefrontHero } from './storefront-hero';
+export { StorefrontHero as StorefrontPublicHeader } from './storefront-hero';
 
 export function StorefrontThemeShell({
   settings,
@@ -16,267 +26,156 @@ export function StorefrontThemeShell({
   draft?: Partial<StoreSettingsDto> | null;
   children: React.ReactNode;
 }) {
-  const effective = mergeStoreSettings(settings, draft);
+  void settings;
+  void draft;
   return (
-    <div className="min-h-screen bg-[color:var(--sf-bg)] text-[color:var(--sf-text)]" style={storefrontCssVars(effective)}>
+    <div
+      className={cn('storefront-root text-[15px] leading-relaxed antialiased', storefrontPageBackgroundClass())}
+      style={storefrontCssVars()}
+    >
       {children}
     </div>
   );
 }
 
-export function StorefrontPublicHeader({
-  store,
-  settings,
-}: {
-  store: StorePublic;
-  settings: StoreSettingsDto;
-}) {
-  const accent = settings.primaryColor;
+function sectionHeading(title: string, subtitle?: string) {
   return (
-    <header className="border-b border-[color:var(--sf-card-border)] bg-[color:var(--sf-header-bg)] backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-8">
-        {store.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.logoUrl}
-            alt=""
-            className={`${radiusClass(settings.cornerRadius)} h-14 w-14 object-cover ring-1 ring-[color:var(--sf-card-border)]`}
-          />
-        ) : (
-          <div
-            className={`flex h-14 w-14 items-center justify-center ${radiusClass(settings.cornerRadius)} text-lg font-bold`}
-            style={{
-              backgroundColor: `${accent}33`,
-              color: accent,
-            }}
-          >
-            {store.name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="flex-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{store.name}</h1>
-          {store.phone ? (
-            <p className="mt-3">
-              <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--sf-muted)]">
-                Contacto
-              </span>
-              <br />
-              <a
-                href={`tel:${store.phone.replace(/\s/g, '')}`}
-                className="text-sm font-medium hover:underline"
-                style={{ color: 'var(--sf-primary)' }}
-              >
-                {store.phone}
-              </a>
-            </p>
-          ) : null}
-        </div>
-        <Link href="/" className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]">
-          Powered by Tu Tienda
-        </Link>
-      </div>
-    </header>
-  );
-}
-
-function ProductCard({
-  product,
-  settings,
-  onAdd,
-}: {
-  product: ProductDto;
-  settings: StoreSettingsDto;
-  onAdd?: () => void;
-}) {
-  const r = radiusClass(settings.cornerRadius);
-  const flat = settings.cardStyle === 'flat';
-  const priceColor = settings.secondaryColor;
-  return (
-    <article
-      className={`overflow-hidden border ${r} border-[color:var(--sf-card-border)] bg-[color:var(--sf-product-card-bg)] ${
-        flat ? '' : 'shadow-sm ring-1 ring-black/5'
-      }`}
-    >
-      <div className="aspect-[4/3] bg-black/10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
-      </div>
-      <div className="space-y-3 p-4">
-        <div>
-          <h3 className="font-semibold">{product.name}</h3>
-          {product.description ? (
-            <p className="mt-1 line-clamp-3 text-xs text-[color:var(--sf-muted)]">{product.description}</p>
-          ) : null}
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-lg font-semibold" style={{ color: priceColor }}>
-            ${Number(product.price).toFixed(2)}
-          </p>
-          {onAdd ? (
-            <button
-              type="button"
-              onClick={onAdd}
-              className={`px-4 py-2 text-xs font-semibold ${r}`}
-              style={{
-                backgroundColor: 'var(--sf-btn)',
-                color: 'var(--sf-btn-text)',
-              }}
-            >
-              Agregar
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function ProductGrid({
-  products,
-  settings,
-  onAdd,
-}: {
-  products: ProductDto[];
-  settings: StoreSettingsDto;
-  onAdd?: (p: ProductDto) => void;
-}) {
-  const list = settings.layoutStyle === 'list';
-  return (
-    <div className={list ? 'flex flex-col gap-4' : 'grid gap-4 sm:grid-cols-2'}>
-      {products.map((p) => (
-        <ProductCard
-          key={p.id}
-          product={p}
-          settings={settings}
-          onAdd={onAdd ? () => onAdd(p) : undefined}
-        />
-      ))}
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--sf-muted)]">{title}</p>
+      {subtitle ? (
+        <h2 className="text-xl font-semibold tracking-tight text-[color:var(--sf-text)] sm:text-2xl">{subtitle}</h2>
+      ) : null}
     </div>
   );
 }
 
+const r = storefrontRadiusClass();
+
 export function StorefrontPublicSections({
   store,
-  settings,
+  settings: _settings,
   slides,
+  slug,
   onAddToCart,
   className,
 }: {
   store: StorePublic;
   settings: StoreSettingsDto;
   slides: CarouselSlideDto[];
+  slug: string;
   onAddToCart?: (p: ProductDto) => void;
   className?: string;
 }) {
+  void _settings;
   const products = useMemo(() => store.products ?? [], [store.products]);
   const sortedCategories = useMemo(
     () => [...store.categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [store.categories],
   );
-  const [tab, setTab] = useState<string | 'all'>('all');
 
+  const hasAnyFeatured = useMemo(() => products.some((p) => p.featured), [products]);
   const featuredList = useMemo(
-    () => (settings.featuredSectionEnabled ? products.filter((p) => p.featured) : []),
-    [products, settings.featuredSectionEnabled],
+    () => (hasAnyFeatured ? products.filter((p) => p.featured) : []),
+    [products, hasAnyFeatured],
   );
 
   const mainProducts = useMemo(
-    () => (settings.featuredSectionEnabled ? products.filter((p) => !p.featured) : products),
-    [products, settings.featuredSectionEnabled],
+    () => (hasAnyFeatured ? products.filter((p) => !p.featured) : products),
+    [products, hasAnyFeatured],
   );
 
-  const filteredMain = useMemo(() => {
-    if (tab === 'all') return mainProducts;
-    return mainProducts.filter((p) => p.categoryId === tab);
-  }, [mainProducts, tab]);
+  const productsByCategory = useMemo(() => {
+    const map = new Map<string, ProductDto[]>();
+    for (const c of sortedCategories) {
+      map.set(c.id, []);
+    }
+    const uncategorized: ProductDto[] = [];
+    for (const p of mainProducts) {
+      if (p.categoryId && map.has(p.categoryId)) {
+        map.get(p.categoryId)!.push(p);
+      } else {
+        uncategorized.push(p);
+      }
+    }
+    return { map, uncategorized };
+  }, [mainProducts, sortedCategories]);
 
-  const showCarousel = settings.carouselEnabled && slides.length > 0;
+  const showCarousel = slides.length > 0;
+  const hasCategories = sortedCategories.length > 0;
+  const catalogHref = `/tienda/${slug}/catalogo`;
 
   return (
-    <div className={cn('mx-auto max-w-6xl space-y-10 px-6 py-10', className)}>
-      {settings.showBanner && settings.bannerUrl ? (
-        <div className={`overflow-hidden ${radiusClass(settings.cornerRadius)} border border-[color:var(--sf-card-border)]`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={settings.bannerUrl} alt="" className="max-h-[320px] w-full object-cover" />
-        </div>
-      ) : null}
-
+    <div className={cn('w-full space-y-12 py-8 md:space-y-16 md:py-10', className)}>
       {showCarousel ? (
         <StorefrontEmblaCarousel
           slides={slides}
-          className={`overflow-hidden ${radiusClass(settings.cornerRadius)} border border-[color:var(--sf-card-border)]`}
+          className={`overflow-hidden border border-[color:var(--sf-card-border)] shadow-[var(--sf-shadow-md)] ${r}`}
         />
       ) : null}
 
-      {settings.descriptionSectionEnabled && store.description ? (
-        <p className="max-w-3xl text-sm leading-relaxed text-[color:var(--sf-muted)]">{store.description}</p>
-      ) : null}
-
-      {settings.featuredSectionEnabled && featuredList.length > 0 ? (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Destacados
-          </h2>
-          <div className="mt-4">
-            <ProductGrid products={featuredList} settings={settings} onAdd={onAddToCart} />
-          </div>
+      {featuredList.length > 0 ? (
+        <section className="space-y-6">
+          {sectionHeading('Selección', 'Destacados')}
+          <CategoryProductSlider
+            title="Destacados"
+            products={featuredList}
+            viewAllHref={catalogHref}
+            onAddToCart={onAddToCart}
+          />
         </section>
       ) : null}
 
-      {settings.categoriesSectionEnabled ? (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Catálogo
-          </h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setTab('all')}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                tab === 'all'
-                  ? 'text-[color:var(--sf-btn-text)]'
-                  : 'border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)] text-[color:var(--sf-muted)] hover:bg-white/5'
-              }`}
-              style={tab === 'all' ? { backgroundColor: 'var(--sf-primary)' } : undefined}
-            >
-              Todos
-            </button>
-            {sortedCategories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setTab(c.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  tab === c.id
-                    ? 'text-[color:var(--sf-btn-text)]'
-                    : 'border border-[color:var(--sf-card-border)] bg-[color:var(--sf-bg)] text-[color:var(--sf-muted)] hover:bg-white/5'
-                }`}
-                style={tab === c.id ? { backgroundColor: 'var(--sf-primary)' } : undefined}
-              >
-                {c.name}
-              </button>
-            ))}
+      <section
+        id="catalogo"
+        className="scroll-mt-28 space-y-10 rounded-3xl border border-[color:var(--sf-card-border)]/60 bg-[color:var(--sf-surface)]/50 px-4 py-8 shadow-[var(--sf-shadow-sm)] backdrop-blur-sm sm:px-6 md:scroll-mt-32 md:space-y-12 md:px-8 md:py-10"
+      >
+        <Separator className="bg-[color:var(--sf-card-border)]" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          {sectionHeading('Tienda', 'Catálogo')}
+          <Link
+            href={catalogHref}
+            className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-[color:var(--sf-primary)] underline-offset-4 hover:underline"
+          >
+            Ver catálogo completo
+            <ChevronRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+
+        {hasCategories ? (
+          <div className="space-y-10 md:space-y-12">
+            {sortedCategories.map((c) => {
+              const catProducts = productsByCategory.map.get(c.id) ?? [];
+              if (catProducts.length === 0) return null;
+              return (
+                <CategoryProductSlider
+                  key={c.id}
+                  title={c.name}
+                  products={catProducts}
+                  viewAllHref={`${catalogHref}?categoria=${c.id}`}
+                  onAddToCart={onAddToCart}
+                />
+              );
+            })}
+            {productsByCategory.uncategorized.length > 0 ? (
+              <CategoryProductSlider
+                title="Otros"
+                products={productsByCategory.uncategorized}
+                viewAllHref={catalogHref}
+                onAddToCart={onAddToCart}
+              />
+            ) : null}
           </div>
-          <div className="mt-6">
-            <ProductGrid products={filteredMain} settings={settings} onAdd={onAddToCart} />
-          </div>
-          {filteredMain.length === 0 ? (
-            <p className="mt-6 text-sm text-[color:var(--sf-muted)]">No hay productos en esta vista.</p>
-          ) : null}
-        </section>
-      ) : (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--sf-muted)]">
-            Productos
-          </h2>
-          <div className="mt-6">
-            <ProductGrid products={products} settings={settings} onAdd={onAddToCart} />
-          </div>
-          {products.length === 0 ? (
-            <p className="mt-6 text-sm text-[color:var(--sf-muted)]">Esta tienda aún no publicó productos.</p>
-          ) : null}
-        </section>
-      )}
+        ) : mainProducts.length > 0 ? (
+          <CategoryProductSlider
+            title="Productos"
+            products={mainProducts}
+            viewAllHref={catalogHref}
+            onAddToCart={onAddToCart}
+          />
+        ) : (
+          <p className="text-sm text-[color:var(--sf-muted)]">Esta tienda aún no publicó productos.</p>
+        )}
+      </section>
     </div>
   );
 }

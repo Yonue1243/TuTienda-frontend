@@ -3,13 +3,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { StorePublic } from '@/lib/types';
+import type { StorePublic, StoreSettingsDto } from '@/lib/types';
 import { AxiosError } from 'axios';
 import { useAuthStore } from '@/stores/auth-store';
 import { PhoneField } from '@/components/forms/PhoneField';
 import { ImageDropzone } from '@/components/forms/ImageDropzone';
 import { extensionFromFileName } from '@/lib/storage-upload';
+import { PageHeader } from '@/components/layout/page-header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function TiendaSettingsPage() {
   const qc = useQueryClient();
@@ -24,26 +34,52 @@ export default function TiendaSettingsPage() {
     retry: false,
   });
 
-  const notFound =
-    q.error instanceof AxiosError && q.error.response?.status === 404;
+  const notFound = q.error instanceof AxiosError && q.error.response?.status === 404;
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [phone, setPhone] = useState<string | undefined>(undefined);
   const [logoUrl, setLogoUrl] = useState('');
+  const [showBanner, setShowBanner] = useState(true);
+  const [bannerUrl, setBannerUrl] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (q.data) {
-      setName(q.data.name);
-      setSlug(q.data.slug);
-      setDescription(q.data.description ?? '');
-      setPhone(q.data.phone ?? undefined);
-      setLogoUrl(q.data.logoUrl ?? '');
+    const s = q.data;
+    if (!s?.id) return;
+    setName(s.name);
+    setSlug(s.slug);
+    setDescription(s.description ?? '');
+    setPhone(s.phone ?? undefined);
+    setLogoUrl(s.logoUrl ?? '');
+    const st = s.settings;
+    if (st) {
+      setShowBanner(st.showBanner);
+      setBannerUrl(st.bannerUrl ?? '');
     }
-  }, [q.data]);
+    // Hidratar solo cuando cambia la tienda (id); no en cada refetch de React Query (evita reset al subir banner).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps intencionales: [q.data?.id]
+  }, [q.data?.id]);
+
+  const updateBannerMu = useMutation({
+    mutationFn: async (body: Pick<StoreSettingsDto, 'showBanner' | 'bannerUrl'>) => {
+      const { data } = await api.patch<StoreSettingsDto>('/stores/me/settings', body);
+      return data;
+    },
+    onSuccess: async (data) => {
+      setMsg('Banner actualizado.');
+      setShowBanner(data.showBanner);
+      setBannerUrl(data.bannerUrl ?? '');
+      await qc.invalidateQueries({ queryKey: ['store', 'me'] });
+    },
+    onError: (e: unknown) => {
+      const ax = e as AxiosError<{ message?: string | string[] }>;
+      const m = ax.response?.data?.message;
+      setMsg(Array.isArray(m) ? m.join(', ') : m ?? 'No se pudo guardar el banner');
+    },
+  });
 
   const createMu = useMutation({
     mutationFn: async () => {
@@ -115,164 +151,210 @@ export default function TiendaSettingsPage() {
 
   if (q.isLoading) {
     return (
-      <div className="mx-auto max-w-3xl animate-pulse space-y-6">
-        <div className="h-8 w-48 rounded-lg bg-zinc-800" />
-        <div className="h-4 w-full max-w-lg rounded bg-zinc-800" />
-        <div className="h-72 rounded-3xl bg-zinc-900/60 ring-1 ring-zinc-800" />
+      <div className="mx-auto max-w-3xl space-y-10">
+        <div className="space-y-3 border-b border-white/[0.06] pb-8">
+          <Skeleton className="h-9 w-64 bg-white/[0.06]" />
+          <Skeleton className="h-4 w-full max-w-lg bg-white/[0.06]" />
+        </div>
+        <Skeleton className="h-56 rounded-xl bg-white/[0.06]" />
+        <Skeleton className="h-48 rounded-xl bg-white/[0.06]" />
       </div>
     );
   }
 
   if (q.isError && !notFound) {
     return (
-      <p className="text-sm text-rose-300">
-        No pudimos cargar tu tienda. Probá recargar la página.
-      </p>
+      <div className="mx-auto max-w-lg">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>No pudimos cargar tu tienda. Probá recargar la página.</AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   const pending = createMu.isPending || updateMu.isPending;
+  const bannerPending = updateBannerMu.isPending;
+  const msgOk =
+    msg &&
+    (msg.includes('correctamente') || msg.includes('guardados') || msg.includes('guardado'));
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 pb-16">
-      <nav className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-        <Link href="/dashboard" className="hover:text-zinc-300">
-          Panel
-        </Link>
-        <span aria-hidden>/</span>
-        <span className="text-zinc-300">Mi tienda</span>
-      </nav>
-
-      <header className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300/90">
-          Identidad pública
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
-          Configuración de tu tienda
-        </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-zinc-400">
-          Personalizá cómo verán tu tienda tus clientes en{' '}
-          <span className="font-mono text-indigo-200">/tienda/{slug || 'tu-slug'}</span>. Podés
-          actualizar estos datos cuando quieras.
-        </p>
-      </header>
+      <PageHeader
+        title="Mi tienda"
+        description={
+          <>
+            Personalizá cómo verán tu vitrina en{' '}
+            <span className="font-mono text-zinc-300">/tienda/{slug || 'tu-slug'}</span>.
+          </>
+        }
+        actions={
+          exists && slug ? (
+            <Button variant="outline" size="sm" className="rounded-full border-white/[0.1]" asChild>
+              <Link href={`/tienda/${slug}`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="size-4" />
+                Ver pública
+              </Link>
+            </Button>
+          ) : null
+        }
+      />
 
       <form onSubmit={submit} className="space-y-8">
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/35 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-          <div className="mb-6 border-b border-zinc-800 pb-4">
-            <h2 className="text-lg font-semibold text-white">Identidad</h2>
-            <p className="mt-1 text-sm text-zinc-500">Nombre público y URL única de tu vitrina.</p>
-          </div>
-          <div className="grid gap-5 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-zinc-400">Nombre de la tienda</label>
-              <input
+        <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
+          <CardHeader className="border-b border-white/[0.06] pb-4">
+            <CardTitle className="text-lg">Identidad</CardTitle>
+            <CardDescription>Nombre público y URL única de tu vitrina.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 pt-6 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="store-name">Nombre de la tienda</Label>
+              <Input
+                id="store-name"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej: Café del Centro"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
+                className="border-white/[0.08] bg-zinc-950"
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-400">Slug (URL)</label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="store-slug">Slug (URL)</Label>
+              <Input
+                id="store-slug"
                 required
                 value={slug}
                 onChange={(e) => setSlug(e.target.value.toLowerCase())}
                 pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
                 placeholder="caf-del-centro"
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-sm text-zinc-100 outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
+                className="border-white/[0.08] bg-zinc-950 font-mono text-sm"
               />
-              <p className="mt-1 text-xs text-zinc-500">Solo minúsculas, números y guiones.</p>
+              <p className="text-[11px] text-zinc-500">Solo minúsculas, números y guiones.</p>
             </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-zinc-400">Descripción</label>
-              <textarea
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="store-desc">Descripción</Label>
+              <Textarea
+                id="store-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
                 placeholder="Contá qué vendés y por qué elegirte."
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none ring-indigo-500/30 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2"
+                className="border-white/[0.08] bg-zinc-950"
               />
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/35 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-          <div className="mb-6 border-b border-zinc-800 pb-4">
-            <h2 className="text-lg font-semibold text-white">Contacto</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+        <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
+          <CardHeader className="border-b border-white/[0.06] pb-4">
+            <CardTitle className="text-lg">Contacto</CardTitle>
+            <CardDescription>
               Este número puede mostrarse en tu tienda pública para consultas y pedidos.
-            </p>
-          </div>
-          <PhoneField
-            label="Teléfono del negocio"
-            value={phone}
-            onChange={(v) => {
-              setPhone(v);
-              setPhoneError(null);
-            }}
-            error={phoneError}
-            disabled={pending}
-            required
-            hint="Incluí código de país. Ejemplo: Argentina +54."
-          />
-        </section>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <PhoneField
+              label="Teléfono del negocio"
+              value={phone}
+              onChange={(v) => {
+                setPhone(v);
+                setPhoneError(null);
+              }}
+              error={phoneError}
+              disabled={pending}
+              required
+              hint="Incluí código de país. Ejemplo: Argentina +54."
+            />
+          </CardContent>
+        </Card>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/35 p-6 shadow-xl shadow-black/20 backdrop-blur md:p-8">
-          <div className="mb-6 border-b border-zinc-800 pb-4">
-            <h2 className="text-lg font-semibold text-white">Marca</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+        <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
+          <CardHeader className="border-b border-white/[0.06] pb-4">
+            <CardTitle className="text-lg">Marca</CardTitle>
+            <CardDescription>
               Logo opcional. Se sube a Supabase Storage con tu sesión.
-            </p>
-          </div>
-          <ImageDropzone
-            label="Logo de la tienda"
-            bucket="logos"
-            buildPath={logoPathBuilder}
-            value={logoUrl}
-            onChange={(url) => setLogoUrl(url)}
-            disabled={pending || !user?.id}
-            hint={
-              !user?.id
-                ? 'Esperando usuario…'
-                : 'Requiere SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en el backend.'
-            }
-          />
-          {!logoUrl ? (
-            <p className="mt-3 text-xs text-zinc-600">
-              También podés pegar una URL manualmente si ya tenés el archivo hospedado:
-            </p>
-          ) : null}
-          <input
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://… (alternativa manual)"
-            className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 font-mono text-xs text-zinc-300 outline-none ring-indigo-500/30 focus:ring-2"
-          />
-        </section>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-6">
+            <ImageDropzone
+              label="Logo de la tienda"
+              bucket="logos"
+              buildPath={logoPathBuilder}
+              value={logoUrl}
+              onChange={(url) => setLogoUrl(url)}
+              disabled={pending || !user?.id}
+              hint={
+                !user?.id
+                  ? 'Esperando usuario…'
+                  : 'Requiere SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en el backend.'
+              }
+            />
+          </CardContent>
+        </Card>
 
-        {msg ? (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              msg.includes('correctamente') || msg.includes('guardados')
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
-                : 'border-rose-500/30 bg-rose-500/10 text-rose-100'
-            }`}
-          >
-            {msg}
-          </div>
+        {exists && q.data?.id ? (
+          <Card className="border-white/[0.06] bg-white/[0.02] shadow-none">
+            <CardHeader className="border-b border-white/[0.06] pb-4">
+              <CardTitle className="text-lg">Banner</CardTitle>
+              <CardDescription>
+                Imagen ancha en la parte superior de tu tienda pública (opcional). El estilo es fijo en la plataforma.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="show-banner-tienda">Mostrar banner</Label>
+                  <p className="text-xs text-zinc-500">Requiere una imagen cargada.</p>
+                </div>
+                <Switch
+                  id="show-banner-tienda"
+                  checked={showBanner}
+                  onCheckedChange={setShowBanner}
+                  disabled={bannerPending}
+                />
+              </div>
+              <ImageDropzone
+                label="Imagen del banner"
+                bucket="banners"
+                buildPath={(file) =>
+                  `${q.data!.id}/banner-${Date.now()}${extensionFromFileName(file.name)}`
+                }
+                value={bannerUrl}
+                onChange={(url) => setBannerUrl(url?.trim() ?? '')}
+                disabled={bannerPending || !user?.id}
+                hint="Formato panorámico recomendado."
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full"
+                disabled={bannerPending}
+                onClick={() => {
+                  setMsg(null);
+                  updateBannerMu.mutate({
+                    showBanner,
+                    bannerUrl: bannerUrl.trim() ? bannerUrl.trim() : null,
+                  });
+                }}
+              >
+                {bannerPending ? 'Guardando…' : 'Guardar banner'}
+              </Button>
+            </CardContent>
+          </Card>
         ) : null}
 
-        <div className="sticky bottom-4 z-10 flex justify-end">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-2xl bg-indigo-500 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition hover:bg-indigo-400 hover:shadow-indigo-900/50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+        {msg ? (
+          <Alert variant={msgOk ? 'default' : 'destructive'} className="border-white/[0.08]">
+            <AlertTitle>{msgOk ? 'Listo' : 'Algo salió mal'}</AlertTitle>
+            <AlertDescription>{msg}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="sticky bottom-4 z-10 flex justify-end pt-2">
+          <Button type="submit" disabled={pending} className="rounded-full px-8 shadow-none">
             {pending ? 'Guardando…' : exists ? 'Guardar cambios' : 'Crear mi tienda'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
